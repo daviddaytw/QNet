@@ -1,9 +1,12 @@
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,4,5,6"
+
 from tqdm import tqdm
 import time
-import multiprocessing as mp
 
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
 from torch.utils.data import DataLoader
 import torchtext
 from torchtext import data
@@ -12,6 +15,9 @@ from torchtext.vocab import build_vocab_from_iterator
 
 from config import args, models, datasets
 import utils
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def init_log(log_name):
     with open('logs/' + log_name + '.log', 'w') as f:
@@ -22,7 +28,6 @@ def log(log_name, message):
         f.write(str(message) + '\n')
 
 def train_model(TextClassifier, dataset, log_name):
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     init_log(log_name)
     MAX_SEQ_LEN = args.max_seq_len
@@ -77,10 +82,11 @@ def train_model(TextClassifier, dataset, log_name):
                            n_qubits_ffn=args.n_qubits_ffn,
                            n_qlayers=args.n_qlayers,
                            dropout=args.dropout_rate)
-    model = model.to(device)
+    net = model.to(device)
+#     net = nn.DataParallel(model)
     log(log_name, f'The model has {utils.count_parameters(model):,} trainable parameters')
 
-    optimizer = torch.optim.Adam(lr=args.lr, params=model.parameters())
+    optimizer = torch.optim.Adam(lr=args.lr, params=net.parameters())
     criterion = torch.nn.CrossEntropyLoss()
 
     # training loop
@@ -89,8 +95,8 @@ def train_model(TextClassifier, dataset, log_name):
 
         log(log_name, f"Epoch {iepoch+1}/{args.n_epochs}")
 
-        train_loss, train_acc = utils.train(model, train_dataloader, optimizer, criterion)
-        valid_loss, valid_acc = utils.evaluate(model, test_dataloader, criterion)
+        train_loss, train_acc = utils.train(net, train_dataloader, optimizer, criterion)
+        valid_loss, valid_acc = utils.evaluate(net, test_dataloader, criterion)
 
         end_time = time.time()
 
@@ -102,16 +108,7 @@ def train_model(TextClassifier, dataset, log_name):
         log(log_name, f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f}%')
 
 if __name__ == '__main__':
-    mp.set_start_method('spawn')
-
-    jobs = []
+    print('Using device:', device)
     for model in models:
         for dataset in datasets:
-            p = mp.Process(target=train_model, args=(models[model], datasets[dataset], f'{model}_{dataset}'))
-            p.start()
-            jobs.append(p)
-
-    print('Jobs generated, num_jobs:', len(jobs))
-    
-    for p in jobs:
-        p.join()
+            train_model(models[model], datasets[dataset], f'{model}_{dataset}')
