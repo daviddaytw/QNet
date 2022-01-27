@@ -5,6 +5,7 @@ from models.fformer import TextClassifier as fformerClassifier
 from models.qfformer import TextClassifier as qfformerClassifier
 from models.fnet import TextClassifier as fnetClassifier
 from models.qnet import TextClassifier as qnetClassifier
+from models.qfnet import TextClassifier as qfnetClassifier
 
 
 parser = argparse.ArgumentParser()
@@ -27,7 +28,8 @@ models = {
     'fformer' : fformerClassifier,
     'qfformer' : qfformerClassifier,
     'fnet': fnetClassifier,
-    'qnet': qnetClassifier
+    'qnet': qnetClassifier,
+    'qfnet': qfnetClassifier
 }
 
 datasets = {
