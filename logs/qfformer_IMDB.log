@@ -1,0 +1,45 @@
+Experiemnt date: Sun Jan 23 21:18:38 2022
+Training examples: 25000
+Testing examples: 25000
+Vocab size: 20436
+The model has 397,986 trainable parameters
+Epoch 1/10
+Epoch: 01 | Epoch Time: 11m 0s
+	Train Loss: 0.634 | Train Acc: 62.38%
+	 Val. Loss: 0.510 |  Val. Acc: 75.22%
+Epoch 2/10
+Epoch: 02 | Epoch Time: 11m 4s
+	Train Loss: 0.415 | Train Acc: 81.14%
+	 Val. Loss: 0.426 |  Val. Acc: 80.75%
+Epoch 3/10
+Epoch: 03 | Epoch Time: 11m 4s
+	Train Loss: 0.324 | Train Acc: 86.07%
+	 Val. Loss: 0.371 |  Val. Acc: 83.61%
+Epoch 4/10
+Epoch: 04 | Epoch Time: 11m 0s
+	Train Loss: 0.267 | Train Acc: 89.13%
+	 Val. Loss: 0.371 |  Val. Acc: 83.80%
+Epoch 5/10
+Epoch: 05 | Epoch Time: 10m 58s
+	Train Loss: 0.225 | Train Acc: 91.02%
+	 Val. Loss: 0.379 |  Val. Acc: 84.58%
+Epoch 6/10
+Epoch: 06 | Epoch Time: 10m 56s
+	Train Loss: 0.184 | Train Acc: 93.09%
+	 Val. Loss: 0.441 |  Val. Acc: 83.47%
+Epoch 7/10
+Epoch: 07 | Epoch Time: 11m 6s
+	Train Loss: 0.152 | Train Acc: 94.48%
+	 Val. Loss: 0.458 |  Val. Acc: 83.48%
+Epoch 8/10
+Epoch: 08 | Epoch Time: 11m 13s
+	Train Loss: 0.122 | Train Acc: 95.53%
+	 Val. Loss: 0.529 |  Val. Acc: 82.82%
+Epoch 9/10
+Epoch: 09 | Epoch Time: 11m 16s
+	Train Loss: 0.095 | Train Acc: 96.88%
+	 Val. Loss: 0.574 |  Val. Acc: 84.17%
+Epoch 10/10
+Epoch: 10 | Epoch Time: 10m 57s
+	Train Loss: 0.076 | Train Acc: 97.43%
+	 Val. Loss: 0.599 |  Val. Acc: 83.85%
