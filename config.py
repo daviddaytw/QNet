@@ -9,8 +9,8 @@ from models.qfnet import TextClassifier as qfnetClassifier
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-B', '--batch_size', default=32, type=int)
-parser.add_argument('-E', '--n_epochs', default=10, type=int)
+parser.add_argument('-B', '--batch_size', default=64, type=int)
+parser.add_argument('-E', '--n_epochs', default=20, type=int)
 parser.add_argument('-l', '--lr', default=0.001, type=float)
 parser.add_argument('-e', '--embed_dim', default=16, type=int)
 parser.add_argument('-s', '--max_seq_len', default=256, type=int)
@@ -35,4 +35,5 @@ models = {
 datasets = {
     'IMDB': datasets.IMDB,
     'AG_NEWS': datasets.AG_NEWS,
+    'DBpedia': datasets.DBpedia,
 }

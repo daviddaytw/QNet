@@ -90,6 +90,8 @@ def train_model(TextClassifier, dataset, log_name):
     criterion = torch.nn.CrossEntropyLoss()
 
     # training loop
+    best_epoch = -1
+    best_val_acc = 0
     for iepoch in range(args.n_epochs):
         start_time = time.time()
 
@@ -106,6 +108,11 @@ def train_model(TextClassifier, dataset, log_name):
         log(log_name, f'Epoch: {iepoch+1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
         log(log_name, f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}%')
         log(log_name, f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f}%')
+        
+        if valid_acc > best_val_acc:
+            best_epoch = iepoch
+            best_val_acc = valid_acc
+    log(log_name, f'Best Epoch: {best_epoch}')
 
 if __name__ == '__main__':
     print('Using device:', device)
