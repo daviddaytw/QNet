@@ -53,9 +53,6 @@ class TransformerBlock(nn.Module):
                  max_seq_len: int,
                  num_heads: int,
                  ff_dim: int,
-                 n_qubits_transformer: int = 0,
-                 n_qubits_ffn: int = 0,
-                 n_qlayers: int = 1,
                  dropout: float = 0.1,
                  mask=None):
         super(TransformerBlock, self).__init__()
@@ -85,9 +82,7 @@ class TextClassifier(nn.Module):
                  num_classes: int,
                  vocab_size: int,
                  ffn_dim: int = 32,
-                 n_qubits_transformer: int = 0,
-                 n_qubits_ffn: int = 0,
-                 n_qlayers: int = 1,
+                 normalize: bool = False,
                  dropout=0.1):
         super(TextClassifier, self).__init__()
         self.embed_dim = embed_dim
@@ -95,6 +90,7 @@ class TextClassifier(nn.Module):
         self.num_blocks = num_blocks
         self.num_classes = num_classes
         self.vocab_size = vocab_size
+        self.normalize = normalize
 
         self.token_embedding = nn.Embedding(vocab_size, embed_dim)
         self.pos_embedding = nn.Embedding(max_seq_len, embed_dim)
@@ -103,6 +99,7 @@ class TextClassifier(nn.Module):
             TransformerBlock(embed_dim, max_seq_len, num_heads, ffn_dim) for _ in range(num_blocks)
         ]
 
+        self.norm = nn.LayerNorm(embed_dim)
         self.transformers = nn.Sequential(*transformer_blocks)
         self.class_logits = nn.Linear(embed_dim, num_classes, bias=False)
         self.dropout = nn.Dropout(dropout)
@@ -111,6 +108,8 @@ class TextClassifier(nn.Module):
         tokens = self.token_embedding(x)
         positions = self.pos_embedding(torch.arange(end=x.size(1), dtype=torch.int64).to(x.device))
         x = tokens + positions
+        if self.normalize:
+            x = self.norm(x)
         x = self.transformers(x)
         x = x.mean(dim=1)
         x = self.dropout(x)

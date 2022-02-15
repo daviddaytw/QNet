@@ -13,13 +13,10 @@ class MultiHeadAttention(nn.Module):
                  num_heads: int,
                  dropout=0.1,
                  mask=None,
-                 use_bias=False,
-                 n_qubits: int = 8,
-                 n_qlayers: int = 1):
+                 use_bias=False,):
         super(MultiHeadAttention, self).__init__()
         self.embed_dim = embed_dim
-        
-        assert 2 ** n_qubits == embed_dim, "Number of qubits ({n_qubits}) does not match embedding dim ({embed_dim})"
+        n_qubits = math.ceil(math.log2(embed_dim))
 
         self.k_linear = nn.Linear(embed_dim, embed_dim, bias=use_bias)
         self.q_linear = nn.Linear(max_seq_len, max_seq_len, bias=use_bias)
@@ -39,12 +36,12 @@ class MultiHeadAttention(nn.Module):
         return output
 
 class FeedForward(nn.Module):
-    def __init__(self, embed_dim, n_qubits, n_qlayers=1, dropout=0.1):
+    def __init__(self, embed_dim, dropout=0.1):
         super(FeedForward, self).__init__()
         self.layers = nn.Sequential(
-            nn.Linear(embed_dim, 2 ** n_qubits, bias=False),
+            nn.Linear(embed_dim, embed_dim, bias=False),
             nn.ReLU(),
-            nn.Linear(2 ** n_qubits, embed_dim, bias=False)
+            nn.Linear(embed_dim, embed_dim, bias=False)
         )
 
     def forward(self, x):
@@ -57,20 +54,15 @@ class TransformerBlock(nn.Module):
                  max_seq_len: int,
                  num_heads: int,
                  ff_dim: int,
-                 n_qubits_transformer: int = 0,
-                 n_qubits_ffn: int = 0,
-                 n_qlayers: int = 1,
                  dropout: float = 0.1,
                  mask=None):
         super(TransformerBlock, self).__init__()
         self.attn = MultiHeadAttention(embed_dim,
                                        max_seq_len,
                                        num_heads,
-                                       n_qubits=n_qubits_transformer,
-                                       n_qlayers=n_qlayers,
                                        dropout=dropout,
                                        mask=mask)
-        self.ffn = FeedForward(embed_dim, n_qubits_ffn, n_qlayers)
+        self.ffn = FeedForward(embed_dim)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
         self.norm1 = nn.LayerNorm(embed_dim, eps=1e-6)
@@ -95,9 +87,7 @@ class TextClassifier(nn.Module):
                  vocab_size: int,
                  max_seq_len: int,
                  ffn_dim: int = 8,
-                 n_qubits_transformer: int = 0,
-                 n_qubits_ffn: int = 0,
-                 n_qlayers: int = 1,
+                 normalize: bool = False,
                  dropout=0.1):
         super(TextClassifier, self).__init__()
         self.embed_dim = embed_dim
@@ -105,17 +95,16 @@ class TextClassifier(nn.Module):
         self.num_blocks = num_blocks
         self.num_classes = num_classes
         self.vocab_size = vocab_size
+        self.normalize = normalize
 
         self.token_embedding = nn.Embedding(vocab_size, embed_dim)
         self.pos_embedding = nn.Embedding(max_seq_len, embed_dim)
 
         transformer_blocks = [
-            TransformerBlock(embed_dim, max_seq_len, num_heads, ffn_dim,
-                             n_qubits_transformer=n_qubits_transformer,
-                             n_qubits_ffn=n_qubits_ffn,
-                             n_qlayers=n_qlayers) for _ in range(num_blocks)
+            TransformerBlock(embed_dim, max_seq_len, num_heads, ffn_dim) for _ in range(num_blocks)
         ]
 
+        self.norm = nn.LayerNorm(embed_dim)
         self.transformers = nn.Sequential(*transformer_blocks)
         self.class_logits = nn.Linear(embed_dim, num_classes)
         self.dropout = nn.Dropout(dropout)
@@ -124,6 +113,8 @@ class TextClassifier(nn.Module):
         tokens = self.token_embedding(x)
         positions = self.pos_embedding(torch.arange(end=x.size(1), dtype=torch.int64).to(x.device))
         x = tokens + positions
+        if self.normalize:
+            x = self.norm(x)
         x = self.transformers(x)
         x = x.mean(dim=1)
         x = self.dropout(x)

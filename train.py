@@ -1,6 +1,6 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 from tqdm import tqdm
 import time
@@ -27,7 +27,7 @@ def log(log_name, message):
     with open('logs/' + log_name + '.log', 'a+') as f:
         f.write(str(message) + '\n')
 
-def train_model(TextClassifier, dataset, log_name):
+def train_model(TextClassifier, dataset, normalize_embedding, log_name):
 
     init_log(log_name)
     MAX_SEQ_LEN = args.max_seq_len
@@ -78,9 +78,7 @@ def train_model(TextClassifier, dataset, log_name):
                            vocab_size=vocab.__len__(),
                            max_seq_len=args.max_seq_len,
                            ffn_dim=args.ffn_dim,
-                           n_qubits_transformer=args.n_qubits_transformer,
-                           n_qubits_ffn=args.n_qubits_ffn,
-                           n_qlayers=args.n_qlayers,
+                           normalize=normalize_embedding,
                            dropout=args.dropout_rate)
     net = model.to(device)
 #     net = nn.DataParallel(model)
@@ -112,10 +110,11 @@ def train_model(TextClassifier, dataset, log_name):
         if valid_acc > best_val_acc:
             best_epoch = iepoch
             best_val_acc = valid_acc
-    log(log_name, f'Best Epoch: {best_epoch}')
+    log(log_name, f'Best Epoch: {best_epoch + 1}')
 
 if __name__ == '__main__':
     print('Using device:', device)
     for model in models:
         for dataset in datasets:
-            train_model(models[model], datasets[dataset], f'{model}_{dataset}')
+            train_model(models[model], datasets[dataset], False, f'{model}_{dataset}')
+            train_model(models[model], datasets[dataset], True, f'{model}_{dataset}_n')
