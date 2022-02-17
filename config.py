@@ -4,6 +4,7 @@ from models.transformer import TextClassifier as transformerClassifier
 from models.fformer import TextClassifier as fformerClassifier
 from models.qfformer import TextClassifier as qfformerClassifier
 from models.fnet import TextClassifier as fnetClassifier
+from models.flatnet import TextClassifier as flatnetClassifier
 from models.qnet import TextClassifier as qnetClassifier
 from models.qfnet import TextClassifier as qfnetClassifier
 
@@ -26,7 +27,8 @@ models = {
     'qfformer' : qfformerClassifier,
     'fnet': fnetClassifier,
     'qnet': qnetClassifier,
-    'qfnet': qfnetClassifier
+    'qfnet': qfnetClassifier,
+    'FlatNet': flatnetClassifier,
 }
 
 datasets = {
