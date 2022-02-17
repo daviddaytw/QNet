@@ -8,7 +8,6 @@ class QFCModel(nn.Module):
     def __init__(self, n_wires, arch=None):
         super().__init__()
         self.n_wires = n_wires
-        self.arch = arch
         self.q_device = tq.QuantumDevice(n_wires=n_wires)
         self.encoder = tq.StateEncoder()
         self.trainable_u = tq.TrainableUnitary(has_params=True,

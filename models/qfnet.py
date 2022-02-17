@@ -29,20 +29,26 @@ class QFNetBlock(nn.Module):
         
         n_wires = math.ceil(math.log2(embed_dim * max_seq_len))
         self.n_wires = n_wires
+        self.n_qlayers = n_qlayers
         self.q_device = tq.QuantumDevice(n_wires=n_wires)
         self.encoder = tq.StateEncoder()
-        self.trainable_u = [
-            tq.TrainableUnitary(has_params=True,
-                               trainable=True,
-                               n_wires=n_wires)
-            for _ in range(4)
+        self.trainable_gates = [
+            [
+                tq.Rot(has_params=True,
+                       trainable=True)
+                for __ in range(n_wires)
+            ]
+            for _ in range(n_qlayers)
         ]
 
-    def vqc(self, idx):
-        self.trainable_u[idx*2](self.q_device, wires=list(range(self.n_wires)))
+    def applyOps(self, idx):
         for i in range(self.n_wires):
-            tqf.cnot(self.q_device, [i, (i+1) % self.n_wires])
-        self.trainable_u[idx*2+1](self.q_device, wires=list(range(self.n_wires)))
+            self.trainable_gates[idx][i](self.q_device, wires=i)
+
+    def vqc(self, idx):
+        self.applyOps(idx)
+        for i in range(self.n_wires):
+            tqf.cnot(self.q_device, [i+idx, (i+idx+1) % self.n_wires])
         
     def qft(self):
         for n in range(self.n_wires - 1, 0, -1):
@@ -62,12 +68,11 @@ class QFNetBlock(nn.Module):
         x = torch.reshape(x, (batch_size, -1))
         self.encoder(self.q_device, x)
 
-        self.vqc(0)
-        self.qft()
-        self.vqc(1)
+        for i in range(self.n_qlayers):
+            self.qft()
+            self.vqc(i)
 
-        x = self.q_device.states.view(batch_size, -1).abs()
-        x = torch.reshape(x, (batch_size, seq_len, embed_dim))
+        x = self.q_device.states.reshape(batch_size, seq_len, embed_dim).abs()
         return x
 
 class FeedForward(nn.Module):
