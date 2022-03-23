@@ -19,10 +19,10 @@ from torchtext.vocab import build_vocab_from_iterator
 torch.manual_seed(0)
 
 from config import args
-from models.qnet import Seq2Seq
+from models.transformer import Seq2Seq
 import utils
 
-LOG_NAME = 'Multi30k/qnet-qemb'
+LOG_NAME = 'Multi30k/transformer-qemb'
 
 SRC_LANGUAGE = 'de'
 TGT_LANGUAGE = 'en'
@@ -60,11 +60,10 @@ def train_one_epoch(model):
     avg_loss = 0
 
     model.train()
-    tgt_mask = nn.Transformer.generate_square_subsequent_mask(MAX_SEQ_LEN).to(device)
-    for src, tgt in dataloader:
+    for src, tgt in tqdm(dataloader, desc='Training'):
         tgt_input = tgt[:, :-1]
 
-        logits = model(src, tgt_input, tgt_mask)
+        logits = model(src, tgt_input, MAX_SEQ_LEN)
 
         tgt_out = tgt[:, 1:]
         loss = criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
@@ -79,12 +78,11 @@ def train_one_epoch(model):
 
 @torch.no_grad()
 def greedy_decode(model, src):
-    memory = model.encode(src)
+    memory = model(src, None, None, decode=False)
     ys = torch.ones(src.size(0), 1).fill_(BOS_IDX).type(torch.long).to(device)
     for i in range(MAX_SEQ_LEN):
-        tgt_mask = nn.Transformer.generate_square_subsequent_mask(ys.size(1)).type(torch.bool).to(device)
-        out = model.decode(ys, memory, tgt_mask)
-        ys = torch.cat([ys, torch.argmax(model.linear(out), dim=-1)[:, -1:]], dim=1)
+        logits = model(None, ys, ys.size(1), memory=memory)
+        ys = torch.cat([ys, torch.argmax(logits, dim=-1)[:, -1:]], dim=1)
     ys = list(ys.cpu().numpy())
     tgt_tokens = []
     for i in ys:
@@ -105,11 +103,10 @@ def evaluate(model):
     references_corpus = []
 
     model.eval()
-    for src, tgt in dataloader:
+    for src, tgt in tqdm(dataloader, desc='Evaluate'):
         tgt_input = tgt[:, :-1]
-        tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt_input.size(1)).to(device)
 
-        logits = model(src, tgt_input, tgt_mask)
+        logits = model(src, tgt_input, tgt_input.size(1))
 
         tgt_out = tgt[:, 1:]
         loss = criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
@@ -180,17 +177,17 @@ if __name__ == '__main__':
             tgt_batch[idx] = F.pad(tgt_tokens, (0, MAX_SEQ_LEN + 1 - len(tgt_tokens)))
         return src_batch.to(device), tgt_batch.to(device)
 
-    model = Seq2Seq(embed_dim=args.embed_dim,
+    model = nn.DataParallel(Seq2Seq(embed_dim=args.embed_dim,
                            num_heads=args.n_heads,
                            num_blocks=args.n_transformer_blocks,
                            src_vocab_size=SRC_VOCAB_SIZE,
                            tgt_vocab_size=TGT_VOCAB_SIZE,
                            max_seq_len=MAX_SEQ_LEN,
                            ffn_dim=args.embed_dim,
-                           dropout=args.dropout_rate).to(device)
+                           dropout=args.dropout_rate)).to(device)
     log(f'The model has {utils.count_parameters(model):,} trainable parameters')
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, betas=(0.9, 0.98), eps=1e-9)
     criterion = torch.nn.CrossEntropyLoss(ignore_index=PAD_IDX)
 
     # training loop
@@ -216,6 +213,7 @@ if __name__ == '__main__':
         log(f'\t Val. Loss: {valid_loss:.3f} |  Val. BLEU: {valid_belu*100:.2f}%')
         
         if valid_belu > best_val:
+            torch.save(model.module.state_dict(), './best_weight.pt')
             best_epoch = iepoch
             best_val = valid_belu
     log(f'Best Epoch: {best_epoch + 1}')

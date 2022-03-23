@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torchquantum as tq
 import torchquantum.functional as tqf
 from torch.nn.utils.rnn import pad_sequence
+from .embedding import QEmbedding
 
 class QNetBlock(nn.Module):
     def __init__(self,
@@ -141,14 +142,14 @@ class Seq2Seq(nn.Module):
         self.num_blocks = num_blocks
         self.unk_idx = unk_idx
 
-        self.src_embedding = nn.Embedding(src_vocab_size, embed_dim)
-        self.tgt_embedding = nn.Embedding(tgt_vocab_size, embed_dim)
+        self.src_embedding = QEmbedding(src_vocab_size, math.floor(math.log2(embed_dim)))
+        self.tgt_embedding = QEmbedding(tgt_vocab_size, math.floor(math.log2(embed_dim)))
         self.pos_encoding = PositionalEncoding(embed_dim, maxlen=max_seq_len)
 
         self.encoders = nn.ModuleList([])
         for _ in range(num_blocks):
             self.encoders.append(nn.ModuleList([
-                nn.DataParallel(QNetBlock(embed_dim, max_seq_len)),
+                QNetBlock(embed_dim, max_seq_len),
                 nn.LayerNorm(embed_dim),
                 FeedForward(embed_dim, ffn_dim),
                 nn.LayerNorm(embed_dim),
@@ -168,10 +169,14 @@ class Seq2Seq(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(embed_dim, tgt_vocab_size)
 
-    def forward(self, src, tgt, tgt_mask):
-        memory = self.encode(src)
-        x = self.decode(tgt, memory, tgt_mask)
-        x = self.linear(self.dropout(x))
+    def forward(self, src, tgt, tgt_mask_size, memory=None, decode=True):
+        if memory == None:
+            memory = self.encode(src)
+            x = memory
+        if decode:
+            tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt_mask_size).to(tgt.device)
+            x = self.decode(tgt, memory, tgt_mask)
+            x = self.linear(self.dropout(x))
         return x
 
     def encode(self, src):

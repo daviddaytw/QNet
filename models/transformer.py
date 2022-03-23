@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
+from .embedding import QEmbedding
+
 # see also:
 # https://nlp.seas.harvard.edu/2018/04/03/attention.html
 # https://mlexplained.com/2019/07/04/building-the-transformer-xl-from-scratch/
@@ -165,7 +167,7 @@ class TextClassifier(nn.Module):
         self.num_classes = num_classes
         self.vocab_size = vocab_size
 
-        self.token_embedding = nn.Embedding(vocab_size, embed_dim)
+        self.token_embedding = QEmbedding(vocab_size, embed_dim) #nn.Embedding(vocab_size, embed_dim)
         self.pos_encoding = PositionalEncoding(embed_dim, maxlen=max_seq_len)
 
         transformer_blocks = [
@@ -200,8 +202,8 @@ class Seq2Seq(nn.Module):
         self.num_blocks = num_blocks
         self.unk_idx = unk_idx
 
-        self.src_embedding = nn.Embedding(src_vocab_size, embed_dim)
-        self.tgt_embedding = nn.Embedding(tgt_vocab_size, embed_dim)
+        self.src_embedding = QEmbedding(src_vocab_size, embed_dim) #nn.Embedding(src_vocab_size, embed_dim)
+        self.tgt_embedding = QEmbedding(tgt_vocab_size, embed_dim) #nn.Embedding(tgt_vocab_size, embed_dim)
         self.pos_encoding = PositionalEncoding(embed_dim, maxlen=max_seq_len)
 
         self.encoders = nn.ModuleList([])
@@ -226,10 +228,14 @@ class Seq2Seq(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(embed_dim, tgt_vocab_size)
 
-    def forward(self, src, tgt, tgt_mask):
-        memory = self.encode(src)
-        x = self.decode(tgt, memory, tgt_mask)
-        x = self.linear(self.dropout(x))
+    def forward(self, src, tgt, tgt_mask_size, memory=None, decode=True):
+        if memory == None:
+            memory = self.encode(src)
+            x = memory
+        if decode:
+            tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt_mask_size).to(tgt.device)
+            x = self.decode(tgt, memory, tgt_mask)
+            x = self.linear(self.dropout(x))
         return x
 
     def encode(self, src):

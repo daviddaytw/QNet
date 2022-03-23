@@ -1,6 +1,6 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="4,5"
 
 from tqdm import tqdm
 import time
@@ -27,7 +27,7 @@ def log(log_name, message):
     with open('logs/' + log_name + '.log', 'a+') as f:
         f.write(str(message) + '\n')
 
-def train_model(TextClassifier, dataset, normalize_embedding, log_name):
+def train_model(TextClassifier, dataset, log_name):
 
     init_log(log_name)
     MAX_SEQ_LEN = args.max_seq_len
@@ -41,7 +41,10 @@ def train_model(TextClassifier, dataset, normalize_embedding, log_name):
         if label not in label_idx:
             label_idx[label] = len(label_idx)
     n_classes = len(label_idx)
-    
+
+    train_iter = [ i for i in train_iter if label_idx[i[0]] < 2]
+    test_iter = [ i for i in test_iter if label_idx[i[0]] < 2]
+
     log(log_name, f'Training examples: {len(train_iter)}')
     log(log_name, f'Testing examples: {len(test_iter)}')
     
@@ -49,6 +52,8 @@ def train_model(TextClassifier, dataset, normalize_embedding, log_name):
     tokenizer = get_tokenizer('basic_english')
     vocab = build_vocab_from_iterator(utils.yield_tokens(tokenizer, train_iter), specials=["<unk>"], min_freq=10)
     vocab.set_default_index(vocab["<unk>"])
+    log(log_name, 'Vocab size: ' + str(vocab.__len__()))
+
     text_pipeline = lambda x: vocab(tokenizer(x))
     label_pipeline = lambda x: int(label_idx[x])
 
@@ -70,21 +75,18 @@ def train_model(TextClassifier, dataset, normalize_embedding, log_name):
     train_dataloader = DataLoader(train_iter, batch_size=args.batch_size, shuffle=True, collate_fn=collate_batch)
     test_dataloader = DataLoader(test_iter, batch_size=args.batch_size, shuffle=False, collate_fn=collate_batch)
 
-    log(log_name, 'Vocab size: ' + str(vocab.__len__()))
-    model = TextClassifier(embed_dim=args.embed_dim,
+    model = nn.DataParallel(TextClassifier(embed_dim=args.embed_dim,
                            num_heads=args.n_heads,
                            num_blocks=args.n_transformer_blocks,
                            num_classes=n_classes,
                            vocab_size=vocab.__len__(),
                            max_seq_len=args.max_seq_len,
-                           ffn_dim=args.ffn_dim,
-                           normalize=normalize_embedding,
-                           dropout=args.dropout_rate)
-    net = model.to(device)
-#     net = nn.DataParallel(model)
+                           ffn_dim=args.embed_dim,
+                           dropout=args.dropout_rate))
+    model = model.to(device)
     log(log_name, f'The model has {utils.count_parameters(model):,} trainable parameters')
 
-    optimizer = torch.optim.Adam(lr=args.lr, params=net.parameters())
+    optimizer = torch.optim.Adam(lr=args.lr, params=model.parameters())
     criterion = torch.nn.CrossEntropyLoss()
 
     # training loop
@@ -95,8 +97,8 @@ def train_model(TextClassifier, dataset, normalize_embedding, log_name):
 
         log(log_name, f"Epoch {iepoch+1}/{args.n_epochs}")
 
-        train_loss, train_acc = utils.train(net, train_dataloader, optimizer, criterion)
-        valid_loss, valid_acc = utils.evaluate(net, test_dataloader, criterion)
+        train_loss, train_acc = utils.train(model, train_dataloader, optimizer, criterion)
+        valid_loss, valid_acc = utils.evaluate(model, test_dataloader, criterion)
 
         end_time = time.time()
 
@@ -116,5 +118,4 @@ if __name__ == '__main__':
     print('Using device:', device)
     for model in models:
         for dataset in datasets:
-            train_model(models[model], datasets[dataset], False, f'{model}_{dataset}')
-            train_model(models[model], datasets[dataset], True, f'{model}_{dataset}_n')
+            train_model(models[model], datasets[dataset], f'{dataset}/{model}-qemb-512')
