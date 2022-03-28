@@ -102,9 +102,9 @@ class FeedForward(nn.Module):
     def __init__(self, embed_dim, ffn_dim):
         super(FeedForward, self).__init__()
         self.layers = nn.Sequential(
-            nn.Linear(embed_dim, ffn_dim, bias=False),
+            nn.Linear(embed_dim, ffn_dim),
             nn.ReLU(ffn_dim),
-            nn.Linear(ffn_dim, embed_dim, bias=False)
+            nn.Linear(ffn_dim, embed_dim)
         )
 
     def forward(self, x):
@@ -167,7 +167,7 @@ class TextClassifier(nn.Module):
         self.num_classes = num_classes
         self.vocab_size = vocab_size
 
-        self.token_embedding = QEmbedding(vocab_size, embed_dim) #nn.Embedding(vocab_size, embed_dim)
+        self.token_embedding = nn.Embedding(vocab_size, embed_dim)
         self.pos_encoding = PositionalEncoding(embed_dim, maxlen=max_seq_len)
 
         transformer_blocks = [
@@ -202,31 +202,26 @@ class Seq2Seq(nn.Module):
         self.num_blocks = num_blocks
         self.unk_idx = unk_idx
 
-        self.src_embedding = QEmbedding(src_vocab_size, embed_dim) #nn.Embedding(src_vocab_size, embed_dim)
-        self.tgt_embedding = QEmbedding(tgt_vocab_size, embed_dim) #nn.Embedding(tgt_vocab_size, embed_dim)
+        self.src_embedding = nn.Embedding(src_vocab_size, embed_dim)
+        self.tgt_embedding = nn.Embedding(tgt_vocab_size, embed_dim)
         self.pos_encoding = PositionalEncoding(embed_dim, maxlen=max_seq_len)
 
         self.encoders = nn.ModuleList([])
         for _ in range(num_blocks):
             self.encoders.append(nn.ModuleList([
                 nn.MultiheadAttention(embed_dim, num_heads, batch_first=True),
-                nn.LayerNorm(embed_dim),
                 FeedForward(embed_dim, ffn_dim),
-                nn.LayerNorm(embed_dim),
             ]))
 
         self.decoders = nn.ModuleList([])
         for _ in range(num_blocks):
             self.decoders.append(nn.ModuleList([
                 nn.MultiheadAttention(embed_dim, num_heads, batch_first=True),
-                nn.LayerNorm(embed_dim),
                 nn.MultiheadAttention(embed_dim, num_heads, batch_first=True),
-                nn.LayerNorm(embed_dim),
                 FeedForward(embed_dim, ffn_dim),
-                nn.LayerNorm(embed_dim),
             ]))
         self.dropout = nn.Dropout(dropout)
-        self.linear = nn.Linear(embed_dim, tgt_vocab_size)
+        self.linear = nn.Linear(embed_dim, tgt_vocab_size, bias=False)
 
     def forward(self, src, tgt, tgt_mask_size, memory=None, decode=True):
         if memory == None:
@@ -240,15 +235,15 @@ class Seq2Seq(nn.Module):
 
     def encode(self, src):
         x = self.pos_encoding(self.src_embedding(src))
-        for attn, norm1, ff, norm2 in self.encoders:
-            x = norm1(attn(x, x, x)[0] + x)
-            x = norm2(ff(x) + x)
+        for attn, ff in self.encoders:
+            x = F.layer_norm(attn(x, x, x)[0] + x, (self.embed_dim,))
+            x = F.layer_norm(ff(x) + x, (self.embed_dim,))
         return x
 
     def decode(self, tgt, memory, tgt_mask):
         x = self.pos_encoding(self.tgt_embedding(tgt))
-        for mattn, norm1, attn, norm2, ff, norm3 in self.decoders:
-            x = norm1(mattn(x, x, x, attn_mask=tgt_mask)[0] + x)
-            x = norm2(attn(x, memory, memory)[0] + x)
-            x = norm3(ff(x) + x)
+        for mattn, attn, ff in self.decoders:
+            x = F.layer_norm(mattn(x, x, x, attn_mask=tgt_mask)[0] + x, (self.embed_dim,))
+            x = F.layer_norm(attn(x, memory, memory)[0] + x, (self.embed_dim,))
+            x = F.layer_norm(ff(x) + x, (self.embed_dim,))
         return x
