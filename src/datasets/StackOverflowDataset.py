@@ -1,6 +1,5 @@
 import sys
 import os
-import string
 from pathlib import Path
 
 import numpy as np
@@ -9,7 +8,6 @@ import tensorflow as tf
 import tensorflow_datasets.public_api as tfds
 
 MAX_LEN=7
-FILTER='"&(),-/:;<=>[\\]_`{|}~\t\n0123456789' or string.punctuation
 
 _CITATION = """\
 @inproceedings{xu-etal-2015-short,
@@ -37,38 +35,38 @@ _URL=[
     'https://raw.githubusercontent.com/jacoxu/StackOverflow/master/rawText/label_StackOverflow.txt'
 ]
 LABEL= {
-    1: 'wordpress',
-    2: 'oracle',
-    3: 'svn',
-    4: 'apache',
-    5: 'excel',
-    6: 'matlab',
-    7: 'visual-studio',
-    8: 'cocoa',
-    9: 'osx',
-    10: 'bash',
-    11: 'spring',
-    12: 'hibernate',
-    13: 'scala',
-    14: 'sharepoint',
-    15: 'ajax',
-    16: 'qt',
-    17: 'drupal',
-    18: 'linq',
-    19: 'haskell',
-    20: 'magento',
+    '0': 'wordpress',
+    '1': 'oracle',
+    '2': 'svn',
+    '3': 'apache',
+    '4': 'excel',
+    '5': 'matlab',
+    '6': 'visual-studio',
+    '7': 'cocoa',
+    '8': 'osx',
+    '9': 'bash',
+    '10': 'spring',
+    '11': 'hibernate',
+    '12': 'scala',
+    '13': 'sharepoint',
+    '14': 'ajax',
+    '15': 'qt',
+    '16': 'drupal',
+    '17': 'linq',
+    '18': 'haskell',
+    '19': 'magento',
 }
 
 class StackOverflowDataset(tfds.core.GeneratorBasedBuilder):
-  VERSION = tfds.core.Version('0.1.0')
+  VERSION = tfds.core.Version('0.1.1')
 
   def _info(self):
     return tfds.core.DatasetInfo(
         builder=self,
         description=('stack_overflow-title-classification'),
         features=tfds.features.FeaturesDict({
-            "text": tfds.features.Tensor(dtype=tf.float64, shape=(MAX_LEN,)),
-            "label": tfds.features.Tensor(dtype=tf.int8, shape=(len(LABEL),)),
+            "text": tfds.features.Text(),
+            "label": tfds.features.ClassLabel(names=list(LABEL.keys())),
         }),
         supervised_keys=('text', 'label'),
         homepage=_HOMEPAGE,
@@ -91,19 +89,7 @@ class StackOverflowDataset(tfds.core.GeneratorBasedBuilder):
   def _generate_examples(self, text_filepath, label_filepath):
     df = pd.DataFrame(columns=['text', 'label'])
     df['text'] = pd.read_fwf(text_filepath, header=None, on_bad_lines='skip')[0]
-    df['label'] = pd.read_fwf(label_filepath, header=None, on_bad_lines='skip')[0]
-    # df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+    df['label'] = pd.read_fwf(label_filepath, header=None, on_bad_lines='skip')[0] - 1
 
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters=FILTER, lower=True, split=' ')
-
-    texts = np.array(df['text'])
-    tokenizer.fit_on_texts(texts)
-
-    texts = tokenizer.texts_to_sequences(df['text'])
-    if MAX_LEN > 0:
-        texts = tf.keras.preprocessing.sequence.pad_sequences(texts, maxlen=MAX_LEN, dtype='float', padding='post', truncating='post', value=0.0)
-
-    labels = tf.keras.utils.to_categorical(df['label'] - 1, num_classes=len(LABEL), dtype='int8')
-
-    for i in range(len(labels)):
-        yield i, {'text': texts[i], 'label': labels[i]}
+    for i in range(len(df['label'])):
+        yield i, {'text': df['text'][i], 'label': df['label'][i]}

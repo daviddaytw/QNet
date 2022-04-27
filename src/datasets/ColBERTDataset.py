@@ -1,15 +1,7 @@
-import sys
-import os
-import string
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import tensorflow_datasets.public_api as tfds
-
-MAX_LEN=7
-FILTER='"&(),-/:;<=>[\\]_`{|}~\t\n0123456789' or string.punctuation
 
 _CITATION = """\
 @misc{https://doi.org/10.48550/arxiv.2004.12832,
@@ -27,14 +19,14 @@ _HOMEPAGE = "https://github.com/Moradnejad/ColBERT-Using-BERT-Sentence-Embedding
 _URL = 'https://raw.githubusercontent.com/Moradnejad/ColBERT-Using-BERT-Sentence-Embedding-for-Humor-Detection/master/Data/dataset.csv'
 
 class ColBERTDataset(tfds.core.GeneratorBasedBuilder):
-  VERSION = tfds.core.Version('0.1.0')
+  VERSION = tfds.core.Version('0.1.1')
 
   def _info(self):
     return tfds.core.DatasetInfo(
         builder=self,
         description=('200k-short-text-for-humor-detect'),
         features=tfds.features.FeaturesDict({
-            "text": tfds.features.Tensor(dtype=tf.float64, shape=(MAX_LEN,)),
+            "text": tfds.features.Text(),
             "label": tfds.features.ClassLabel(names=['True', 'False']),
         }),
         supervised_keys=('text', 'label'),
@@ -56,18 +48,6 @@ class ColBERTDataset(tfds.core.GeneratorBasedBuilder):
 
   def _generate_examples(self, filepath):
     df = pd.read_csv(filepath)
-    # df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters=FILTER, lower=True, split=' ')
-
-    texts = np.array(df['text'])
-    tokenizer.fit_on_texts(texts)
-
-    texts = tokenizer.texts_to_sequences(df['text'])
-    if MAX_LEN > 0:
-        texts = tf.keras.preprocessing.sequence.pad_sequences(texts, maxlen=MAX_LEN, dtype='float', padding='post', truncating='post', value=0.0)
-
-    labels = tf.keras.utils.to_categorical(df['humor'], num_classes=2, dtype='int8')
-
-    for i in range(len(labels)):
-        yield i, {'text': texts[i], 'label': labels[i]}
+    for i in range(len(df['humor'])):
+        yield i, {'text': df['text'][i], 'label': df['humor'][i]}
