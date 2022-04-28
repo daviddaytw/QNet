@@ -10,7 +10,7 @@ def binary_accuracy(preds, y):
 
     #round predictions to the closest integer
     preds = preds.argmax(dim=1)
-    correct = (preds == y).float() #convert into float for division 
+    correct = (preds == y).float() #convert into float for division
     acc = correct.sum() / len(correct)
     return acc
 
@@ -18,7 +18,7 @@ def binary_accuracy(preds, y):
 def train(model, dataloader, optimizer, criterion):
     epoch_loss = 0
     epoch_acc = 0
-    
+
     model.train()
     for label, text in dataloader:
         optimizer.zero_grad()
@@ -28,10 +28,10 @@ def train(model, dataloader, optimizer, criterion):
         loss = criterion(predictions, label)
         #loss = F.nll_loss(predictions, label)
         acc = binary_accuracy(predictions, label)
-        
+
         loss.backward()
         optimizer.step()
-        
+
         epoch_loss += loss.item()
         epoch_acc += acc.item()
 
@@ -39,10 +39,10 @@ def train(model, dataloader, optimizer, criterion):
 
 
 def evaluate(model, dataloader, criterion):
-    
+
     epoch_loss = 0
     epoch_acc = 0
-    
+
     model.eval()
     with torch.no_grad():
         for label, text in dataloader:
@@ -54,7 +54,7 @@ def evaluate(model, dataloader, criterion):
 
             epoch_loss += loss.item()
             epoch_acc += acc.item()
-        
+
     return epoch_loss / len(dataloader), epoch_acc / len(dataloader)
 
 
