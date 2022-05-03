@@ -1,121 +1,75 @@
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
-os.environ["CUDA_VISIBLE_DEVICES"]="4,5"
+import numpy as np
+import tensorflow as tf
+import tensorflow_datasets as tfds
+from tensorflow.keras import layers
+from tensorflow.keras import losses
+from model import QuanformerEncoder
 
-from tqdm import tqdm
-import time
+# tf.get_logger().setLevel('ERROR')
+tf.keras.backend.set_floatx('float64')
 
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
-import torchtext
-from torchtext import data
-from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import build_vocab_from_iterator
+# Set random seeds
+np.random.seed(42)
+tf.random.set_seed(42)
 
-from config import args, models, datasets
-import utils
+print("Version: ", tf.__version__)
+print("Eager mode: ", tf.executing_eagerly())
+print("GPU is", "available" if tf.config.list_physical_devices("GPU") else "NOT AVAILABLE")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+train_raw, test_raw = tfds.load(
+    name="imdb_reviews",
+    split=('train', 'test'),
+    as_supervised=True
+)
 
+vectorize_layer = layers.TextVectorization(
+    standardize="lower_and_strip_punctuation",
+    output_mode='int',
+    output_sequence_length=8
+)
 
-def init_log(log_name):
-    with open('logs/' + log_name + '.log', 'w') as f:
-        f.write('Experiemnt date: ' + time.ctime() + '\n')
+train_text = tf.data.Dataset.from_tensor_slices([ text for text, label in train_raw ])
+vectorize_layer.adapt(train_text)
+max_features = vectorize_layer.vocabulary_size()
+print('Vocab size:', max_features)
 
-def log(log_name, message):
-    with open('logs/' + log_name + '.log', 'a+') as f:
-        f.write(str(message) + '\n')
+model = tf.keras.models.Sequential([
+    tf.keras.Input(shape=(1,), dtype=tf.string),
+    vectorize_layer,
+    layers.Embedding(max_features + 1, 2 * 3),
+    layers.Flatten(),
+    QuanformerEncoder(
+        embed_size=2,
+        src_seq_len=8,
+        num_blocks=1,
+    ),
+    layers.Dense(2, 'softmax'),
+])
 
-def train_model(TextClassifier, dataset, log_name):
+opt = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
+model.compile(
+    opt,
+    loss=tf.keras.losses.CategoricalCrossentropy(),
+    metrics=["accuracy"]
+)
 
-    init_log(log_name)
-    MAX_SEQ_LEN = args.max_seq_len
+print(model.summary())
+train_data = tf.data.Dataset.from_tensor_slices((
+                    [ text for text, label in train_raw ],
+                    [ tf.one_hot(label, 2) for text, label in train_raw ],
+))
+test_data = tf.data.Dataset.from_tensor_slices((
+                    [ text for text, label in test_raw ],
+                    [ tf.one_hot(label, 2) for text, label in test_raw ],
+))
 
-    train_iter, test_iter = dataset(split=('train', 'test'))
-    train_iter = list(train_iter)
-    test_iter = list(test_iter)
-    
-    label_idx = {}
-    for label, _ in train_iter:
-        if label not in label_idx:
-            label_idx[label] = len(label_idx)
-    n_classes = len(label_idx)
-
-    train_iter = [ i for i in train_iter if label_idx[i[0]] < 2]
-    test_iter = [ i for i in test_iter if label_idx[i[0]] < 2]
-
-    log(log_name, f'Training examples: {len(train_iter)}')
-    log(log_name, f'Testing examples: {len(test_iter)}')
-    
-
-    tokenizer = get_tokenizer('basic_english')
-    vocab = build_vocab_from_iterator(utils.yield_tokens(tokenizer, train_iter), specials=["<unk>"], min_freq=10)
-    vocab.set_default_index(vocab["<unk>"])
-    log(log_name, 'Vocab size: ' + str(vocab.__len__()))
-
-    text_pipeline = lambda x: vocab(tokenizer(x))
-    label_pipeline = lambda x: int(label_idx[x])
-
-    def collate_batch(batch):
-        label_list, text_list = [], []
-        for (_label, _text) in batch:
-            label_list.append(label_pipeline(_label))
-            processed_text = text_pipeline(_text)
-            if len(processed_text) > MAX_SEQ_LEN:
-                processed_text = processed_text[:MAX_SEQ_LEN]
-            for i in range(len(processed_text), MAX_SEQ_LEN):
-                processed_text.append(0)
-            text_list.append(processed_text)
-        label_list = torch.LongTensor(label_list)
-        text_list = torch.LongTensor(text_list)
-        return label_list.to(device), text_list.to(device)
-
-
-    train_dataloader = DataLoader(train_iter, batch_size=args.batch_size, shuffle=True, collate_fn=collate_batch)
-    test_dataloader = DataLoader(test_iter, batch_size=args.batch_size, shuffle=False, collate_fn=collate_batch)
-
-    model = nn.DataParallel(TextClassifier(embed_dim=args.embed_dim,
-                           num_heads=args.n_heads,
-                           num_blocks=args.n_transformer_blocks,
-                           num_classes=n_classes,
-                           vocab_size=vocab.__len__(),
-                           max_seq_len=args.max_seq_len,
-                           ffn_dim=args.embed_dim,
-                           dropout=args.dropout_rate))
-    model = model.to(device)
-    log(log_name, f'The model has {utils.count_parameters(model):,} trainable parameters')
-
-    optimizer = torch.optim.Adam(lr=args.lr, params=model.parameters())
-    criterion = torch.nn.CrossEntropyLoss()
-
-    # training loop
-    best_epoch = -1
-    best_val_acc = 0
-    for iepoch in range(args.n_epochs):
-        start_time = time.time()
-
-        log(log_name, f"Epoch {iepoch+1}/{args.n_epochs}")
-
-        train_loss, train_acc = utils.train(model, train_dataloader, optimizer, criterion)
-        valid_loss, valid_acc = utils.evaluate(model, test_dataloader, criterion)
-
-        end_time = time.time()
-
-        epoch_mins, epoch_secs = utils.epoch_time(start_time, end_time)
-        
-        print(f'{log_name} | Epoch: {iepoch+1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
-        log(log_name, f'Epoch: {iepoch+1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
-        log(log_name, f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}%')
-        log(log_name, f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f}%')
-        
-        if valid_acc > best_val_acc:
-            best_epoch = iepoch
-            best_val_acc = valid_acc
-    log(log_name, f'Best Epoch: {best_epoch + 1}')
-
-if __name__ == '__main__':
-    print('Using device:', device)
-    for model in models:
-        for dataset in datasets:
-            train_model(models[model], datasets[dataset], f'{dataset}/{model}-qemb-512')
+fitting = model.fit(
+            train_data.shuffle(1000).batch(16),
+            batch_size=16,
+            epochs=10,
+            validation_data=test_data.batch(16),
+            verbose=1
+        )
