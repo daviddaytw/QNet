@@ -1,14 +1,11 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from tensorflow.keras import layers
 from tensorflow.keras import losses
-from model import QuanformerEncoder
+from models.QNet import QuanformerEncoder
 
-# tf.get_logger().setLevel('ERROR')
 tf.keras.backend.set_floatx('float64')
 
 # Set random seeds
