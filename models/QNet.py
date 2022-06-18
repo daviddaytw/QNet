@@ -43,7 +43,7 @@ def decoder(weights, decoder_wires, encoder_wires):
     quanttention(weights[1:2], wires=decoder_wires)
     feedforward(weights[2:4], wires=decoder_wires)
 
-def QuanformerEncoder(
+def QNetEncoder(
         embed_size : int,
         src_seq_len : int,
         num_blocks : int = 1,
@@ -73,7 +73,7 @@ def QuanformerEncoder(
 
     return  qml.qnn.KerasLayer(berq_circuit, weight_shapes, batch_idx = 0, output_dim = n_wires)
 
-def Quanformer(
+def QNet(
         embed_size : int,
         src_seq_len : int,
         tgt_seq_len : int,
@@ -84,7 +84,7 @@ def Quanformer(
     dev = qml.device('default.qubit.tf', wires=n_wires)
 
     @qml.qnode(dev, interface="tf", diff_method="backprop")
-    def quanformer_circuit(inputs, weights_encoder, weights_decoder, weights_aux):
+    def qnet_circuit(inputs, weights_encoder, weights_decoder, weights_aux):
         embed_size = weights_encoder.shape[2]
         src_seq_len, tgt_seq_len = weights_aux.shape
 
@@ -116,7 +116,7 @@ def Quanformer(
         "weights_aux" : ( src_seq_len, tgt_seq_len ),
     }
 
-    qmodel = qml.qnn.KerasLayer(quanformer_circuit, weight_shapes, output_dim = tgt_seq_len)
+    qmodel = qml.qnn.KerasLayer(qnet_circuit, weight_shapes, output_dim = tgt_seq_len)
     cmodel = tf.keras.layers.Dense(tgt_vocab_size)
     model = tf.keras.models.Sequential([qmodel, cmodel])
     return model

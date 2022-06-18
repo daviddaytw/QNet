@@ -33,7 +33,7 @@ class TokenAndPositionEmbedding(layers.Layer):
         return x + positions
 
 class FNet(layers.Layer):
-    def __init__(self, vocab_size: int, maxlen: int = 8, embed_dim: int = 2, ff_dim: int = 2):
+    def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, ff_dim: int):
         super(FNet, self).__init__()
         self.layers = tf.keras.models.Sequential([
             layers.Input(shape=(maxlen,)),
