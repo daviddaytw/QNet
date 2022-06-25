@@ -5,8 +5,6 @@ from tensorflow.keras import layers
 from datasets import get_dataset, get_dataset_output_size
 from models import get_model
 
-tf.keras.backend.set_floatx('float64')
-
 parser = argparse.ArgumentParser(description='Configure training arugments.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--dataset', '-d', default='stackoverflow', type=str,
                     help='Select the training dataset.')

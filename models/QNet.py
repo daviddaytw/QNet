@@ -1,137 +1,96 @@
 import tensorflow as tf
-import pennylane as qml
-from pennylane import numpy as np
+from tensorflow.keras import layers
+import tensorflow_quantum as tfq
 
-def encode_embedding(srcs, embed_size, wires):
-    emb_size = embed_size * 3
-    seq_len = srcs.shape[-1] // emb_size
-    for i in range(seq_len):
-        emb = srcs[:, i * emb_size : (i + 1) * emb_size]
-        token_wires = wires[i* embed_size: (i + 1) * embed_size]
-        qml.AngleEmbedding(features=emb[:, :embed_size], wires=token_wires, rotation='X')
-        qml.AngleEmbedding(features=emb[:, embed_size:embed_size*2], wires=token_wires, rotation='Y')
-        qml.AngleEmbedding(features=emb[:, embed_size*2:], wires=token_wires, rotation='Z')
+import cirq
+import sympy
+import numpy as np
+from numpy import pi
 
-def quanttention(weights, wires, embed_size):
-    for idx in range(0, len(wires), embed_size):
-        token_wires = wires[idx : idx + embed_size]
-        qml.StronglyEntanglingLayers(weights=weights[0], wires=token_wires)
+def quantum_data_encoder(bits, symbols):
+    circuit = cirq.Circuit()
+    for bit in bits: circuit.append(cirq.H(bit))
+    for idx, bit in enumerate(bits):
+        circuit.append(cirq.Z(bit)**symbols[idx])
+    return circuit
 
-    for idx in range(embed_size):
-        embed_wires = [ wires[i + idx] for i in range(0, len(wires), embed_size) ]
-        qml.QFT(wires=embed_wires)
+def quanttention(bits, embed_size):
+    circuit = cirq.Circuit()
+    seq_len = len(bits) // embed_size
+    for i in range(embed_size):
+        subs = [ bits[j * embed_size + i] for j in range(seq_len) ]
 
-def feedforward(weights, wires, embed_size):
-    for idx in range(0, len(wires), embed_size):
-        token_wires = wires[idx : idx + embed_size]
+        for j in range(seq_len-1, -1, -1):
+            circuit.append(cirq.H(subs[j]))
+            for k in range(0, j):
+                circuit.append(cirq.CZ(subs[k], subs[j])**(pi/2**(j-k)))
+        for j in range(seq_len//2):
+            circuit.append(cirq.SWAP(subs[j], subs[seq_len-j-1]))
+    return circuit
+
+def quantum_feedforward(bits, embed_size, level, symbols):
+    circuit = cirq.Circuit()
+    for idx, bit in enumerate(bits):
+        circuit.append(cirq.X(bit) ** symbols[(idx + level) % embed_size])
+        circuit.append(cirq.Y(bit) ** symbols[(idx + level) % embed_size + embed_size])
+        circuit.append(cirq.Z(bit) ** symbols[(idx + level) % embed_size + 2 * embed_size])
+    for i in range(len(bits)):
+        circuit.append(cirq.CX(bits[(i + level) % len(bits)], bits[(i + level + 1) % len(bits)]))
+    return circuit
+
+def generate_model(embed_size, seq_len, depth = 1):
+    qubits = cirq.GridQubit.rect(seq_len, embed_size)
+    circuit = cirq.Circuit()
+    
+    embedding_symbols = sympy.symbols(f'e0:{embed_size * seq_len}')
+    circuit = quantum_data_encoder(qubits, embedding_symbols)
+    
+    ff_symbols = sympy.symbols(f't0:{embed_size * depth * 3}')
+    for d in range(depth):
+        circuit += quanttention(qubits, embed_size)
+        symbols = ff_symbols[d * embed_size * 3 : (d+1) * embed_size * 3]
+        circuit += quantum_feedforward(qubits, embed_size, d, symbols)
+    return qubits, circuit
+
+
+class ParametersLayer(layers.Layer):
+    def __init__(self, vocab_size, embed_dim, depth):
+        super(ParametersLayer, self).__init__()
+        self.embedding = layers.Embedding(input_dim=vocab_size, output_dim=embed_dim)
+        self.parameters = tf.Variable(
+            np.random.uniform(0, 2 * np.pi, (1, depth * 3 * embed_dim)),
+            name="Q_param",
+            dtype=tf.float32,
+        )
+        self.flatten = layers.Flatten()
+
+    def call(self, inputs):
+        embedding = self.embedding(inputs)
+        x1 = self.flatten(embedding)
+        x2 = tf.tile(self.parameters, tf.stack([tf.shape(inputs)[0], 1]))
+        x = tf.concat([x1, x2], -1)
+        return x
+
+class QNet(layers.Layer):
+    def __init__(self, embed_dim, seq_len, depth):
+        super(QNet, self).__init__()
+        qubits, model_circuit = generate_model(embed_dim, seq_len, depth)
+        observables = [ cirq.Z(bit) for bit in qubits ]
+        self.backbone = tfq.layers.ControlledPQC(model_circuit, operators=observables)
+    
+    def call(self, inputs):
+        empty_circuit = tf.tile(tfq.convert_to_tensor([cirq.Circuit()]), tf.stack([tf.shape(inputs)[0]]))
+        y = self.backbone([empty_circuit, inputs])
         
-        qml.StronglyEntanglingLayers(weights=weights[0], wires=token_wires)
-        qml.templates.GroverOperator(wires=token_wires)
-        qml.StronglyEntanglingLayers(weights=weights[1], wires=token_wires)
+        return y
 
-def encoder(weights, encoder_wires, embed_size):
-    quanttention(weights[:1], wires=encoder_wires, embed_size=embed_size)
-    feedforward(weights[1:], wires=encoder_wires, embed_size=embed_size)
-
-def decoder(weights, decoder_wires, encoder_wires):
-    quanttention(weights[0:1], wires=decoder_wires)
-    
-    for idx, tgt_wire in enumerate(decoder_wires):
-        for src_wire in range(idx % num_embed_wire, len(encoder_wires), num_embed_wire):
-            qml.CNOT(wires=[src_wire, tgt_wire])
-    
-    quanttention(weights[1:2], wires=decoder_wires)
-    feedforward(weights[2:4], wires=decoder_wires)
-
-def QNetEncoder(
-        embed_size : int,
-        src_seq_len : int,
-        num_blocks : int = 1,
-    ):
-    n_wires = embed_size * src_seq_len
-    dev = qml.device('default.qubit.tf', wires=n_wires)
-    
-    @qml.qnode(dev, interface="tf", diff_method="backprop")
-    def berq_circuit(inputs, weights):
-        embed_size = weights.shape[2]
-        src_seq_len = inputs.shape[-1] // ( embed_size * 3 )
-
-        wires = range(embed_size * src_seq_len)
-
-        # Encoder input word embedding
-        encode_embedding(inputs, embed_size, wires)
-
-        # Repeat encoder N times
-        for block_idx in range(0, weights.shape[0], 3):
-            encoder(weights[block_idx : block_idx + 3], wires, embed_size)
-
-        return [ qml.expval(qml.PauliZ(i)) for i in wires ]
-
-    weight_shapes = {
-        "weights": (3 * num_blocks, 1, embed_size, 3)
-    }
-
-    return  qml.qnn.KerasLayer(berq_circuit, weight_shapes, batch_idx = 0, output_dim = n_wires)
-
-def QNet(
-        embed_size : int,
-        src_seq_len : int,
-        tgt_seq_len : int,
-        tgt_vocab_size : int,
-        num_blocks : int = 1,
-    ):
-    n_wires = (embed_size) * (src_seq_len + tgt_seq_len)
-    dev = qml.device('default.qubit.tf', wires=n_wires)
-
-    @qml.qnode(dev, interface="tf", diff_method="backprop")
-    def qnet_circuit(inputs, weights_encoder, weights_decoder, weights_aux):
-        embed_size = weights_encoder.shape[2]
-        src_seq_len, tgt_seq_len = weights_aux.shape
-
-        encoder_wires = range(embed_size * src_seq_len)
-        decoder_wires = [ i + encoder_wires[-1] + 1 for i in range(embed_size * tgt_seq_len) ]
-
-        srcs = inputs[:, :src_seq_len]
-        tgts = inputs[:, src_seq_len:]
-
-        # Encoder input word embedding
-        encode_embedding(srcs, encoder_wires)
-
-        # Repeat encoder N times
-        for block_idx in range(0, weights_encoder.shape[0], 3):
-            encoder(weights_encoder[block_idx : block_idx + 3], encoder_wires)
-
-        # Encoder output word embedding (shifted-right)
-        encode_embedding(tgts, decoder_wires)
-
-        # Repeat Decoder N times
-        for block_idx in range(0, weights_decoder.shape[0], 4):
-            decoder(weights_decoder[block_idx : block_idx + 4], decoder_wires, encoder_wires)
-
-        return [ qml.expval(qml.PauliZ(i)) for i in decoder_wires ]
-
-    weight_shapes = {
-        "weights_encoder": (3 * num_blocks, 1, embed_size, 3),
-        "weights_decoder": (4 * num_blocks, 1, embed_size, 3),
-        "weights_aux" : ( src_seq_len, tgt_seq_len ),
-    }
-
-    qmodel = qml.qnn.KerasLayer(qnet_circuit, weight_shapes, output_dim = tgt_seq_len)
-    cmodel = tf.keras.layers.Dense(tgt_vocab_size)
-    model = tf.keras.models.Sequential([qmodel, cmodel])
-    return model
-
-if __name__ == '__main__':
-    num_embed_wire = 2
-    src_token_len = 1
-    tgt_token_len = 1
-    n_wires = (num_embed_wire) * (src_token_len + tgt_token_len)
-    dev = qml.device('default.qubit', wires=n_wires)
-    qnode = qml.QNode(circuit, dev)
-
-    srcs = np.random.random(size=(src_token_len, num_embed_wire))
-    tgts = np.random.random(size=(tgt_token_len, num_embed_wire))
-    encoderWeight = np.random.random(size=(3, 1, num_embed_wire, 3))
-    decoderWeight = np.random.random(size=(4, 1, num_embed_wire, 3))
-    
-    print(qml.draw(qnode)(srcs, tgts, encoderWeight, decoderWeight))
+class QNetEncoder(layers.Layer):
+    def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, ff_dim: int, num_heads: int = 1):
+        super(QNetEncoder, self).__init__()
+        self.layers = tf.keras.models.Sequential([
+            layers.Input(shape=(maxlen,)),
+            ParametersLayer(vocab_size, embed_dim, 1),
+            QNet(embed_dim, maxlen, 1),
+        ])
+    def call(self, x):
+        return self.layers(x)
