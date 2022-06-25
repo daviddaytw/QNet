@@ -12,9 +12,9 @@ class FNetBlock(layers.Layer):
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6, center=False, scale=False)
         self.layernorm2 = layers.LayerNormalization(epsilon=1e-6, center=False, scale=False)
 
-    def call(self, inputs, training):
+    def call(self, inputs):
         x_complex = tf.cast(inputs, tf.complex64)
-        attn_output = tf.cast(tf.math.real(tf.signal.fft2d(x_complex)), tf.float64)
+        attn_output = tf.cast(tf.math.real(tf.signal.fft2d(x_complex)), tf.float32)
         out1 = self.layernorm1(inputs + attn_output)
         ffn_output = self.ffn(out1)
         return self.layernorm2(out1 + ffn_output)
@@ -43,4 +43,3 @@ class FNet(layers.Layer):
         ])
     def call(self, x):
         return self.layers(x)
-
