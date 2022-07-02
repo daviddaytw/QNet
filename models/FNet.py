@@ -39,7 +39,6 @@ class FNet(layers.Layer):
             layers.Input(shape=(maxlen,)),
             TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim),
             FNetBlock(embed_dim, ff_dim),
-            layers.GlobalAveragePooling1D(),
         ])
     def call(self, x):
         return self.layers(x)

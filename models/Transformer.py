@@ -39,8 +39,6 @@ class TransformerEncoder(layers.Layer):
             layers.Input(shape=(maxlen,)),
             TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim),
             TransformerBlock(embed_dim, num_heads, ff_dim),
-            layers.GlobalAveragePooling1D(),
-            layers.Flatten(),
         ])
     def call(self, x):
         return self.layers(x)

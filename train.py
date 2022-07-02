@@ -20,7 +20,7 @@ parser.add_argument('--batch_size', '-bs', default='128', type=int,
                     help='Number of samples per batch.')
 parser.add_argument('--lr', '-lr', default='0.01', type=float,
                     help='The initial learning rate.')
-parser.add_argument('--epochs','-e', default='10', type=int,
+parser.add_argument('--epochs','-e', default='5', type=int,
                     help='Number of training loops over all training data')
 args = parser.parse_args()
 
@@ -55,6 +55,7 @@ model = tf.keras.models.Sequential([
         args.seq_len,
         args.num_blocks,
     ),
+    layers.Flatten(),
     layers.Dense(get_dataset_output_size(args.dataset)),
 ])
 
