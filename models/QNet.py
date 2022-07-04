@@ -77,7 +77,6 @@ def generate_model(embed_size, seq_len, depth = 1):
 class ParametersLayer(layers.Layer):
     def __init__(self, vocab_size, embed_dim, depth):
         super(ParametersLayer, self).__init__()
-        self.embedding = layers.Embedding(input_dim=vocab_size, output_dim=embed_dim)
         self.parameters = tf.Variable(
             np.random.uniform(0, 2 * np.pi, (1, 2 * depth * 3 * embed_dim)),
             name="Q_param",
@@ -86,8 +85,7 @@ class ParametersLayer(layers.Layer):
         self.flatten = layers.Flatten()
 
     def call(self, inputs):
-        embedding = self.embedding(inputs)
-        x1 = self.flatten(embedding)
+        x1 = self.flatten(inputs)
         x2 = tf.tile(self.parameters, tf.stack([tf.shape(inputs)[0], 1]))
         x = tf.concat([x1, x2], -1)
         return x
@@ -95,6 +93,9 @@ class ParametersLayer(layers.Layer):
 class QNet(layers.Layer):
     def __init__(self, embed_dim, seq_len, depth):
         super(QNet, self).__init__()
+        self.embed_dim = embed_dim
+        self.seq_len = seq_len
+
         qubits, model_circuit = generate_model(embed_dim, seq_len, depth)
         observables = [ cirq.Z(bit) for bit in qubits ]
         self.backbone = tfq.layers.ControlledPQC(model_circuit, operators=observables)
@@ -102,16 +103,21 @@ class QNet(layers.Layer):
     def call(self, inputs):
         empty_circuit = tf.tile(tfq.convert_to_tensor([cirq.Circuit()]), tf.stack([tf.shape(inputs)[0]]))
         y = self.backbone([empty_circuit, inputs])
-        
-        return y
+
+        return tf.reshape(y, [-1, self.seq_len, self.embed_dim])
 
 class QNetEncoder(layers.Layer):
     def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, ff_dim: int, num_heads: int = 1):
         super(QNetEncoder, self).__init__()
-        self.layers = tf.keras.models.Sequential([
+        self.embed = tf.keras.models.Sequential([
             layers.Input(shape=(maxlen,)),
+            layers.Embedding(input_dim=vocab_size, output_dim=embed_dim),
+        ])
+        self.encoders = tf.keras.models.Sequential([
             ParametersLayer(vocab_size, embed_dim, 1),
             QNet(embed_dim, maxlen, 1),
         ])
+
     def call(self, x):
-        return self.layers(x)
+        x = self.embed(x)
+        return x + self.encoders(x)
