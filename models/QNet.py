@@ -36,8 +36,8 @@ def grover_operator(bits, embed_size):
         for j in subs[:-1]:
             circuit.append(cirq.H(j))
         circuit.append(cirq.Z(subs[-1]))
-        
-        circuit.append(cirq.X.controlled(num_controls=embed_size-1).on(*subs))
+
+        circuit.append(cirq.ControlledGate(sub_gate=cirq.X, num_controls=embed_size-1).on(*subs))
 
         for j in subs[:-1]:
             circuit.append(cirq.H(j))
