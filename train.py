@@ -1,4 +1,4 @@
-import argparse, os, uuid, json
+import argparse, os, time, json
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
@@ -8,7 +8,7 @@ from models import get_model
 parser = argparse.ArgumentParser(description='Configure training arugments.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--dataset', '-d', default='stackoverflow', type=str,
                     help='Select the training dataset.')
-parser.add_argument('--model', '-m', default='transformer', type=str,
+parser.add_argument('--model', '-m', default='qnet', type=str,
                     help='Select the trainig model (transformer, qnet, fnet)')
 parser.add_argument('--seq_len', '-ml', default='8', type=int,
                     help='Input length for the model.')
@@ -23,6 +23,7 @@ parser.add_argument('--lr', '-lr', default='0.01', type=float,
 parser.add_argument('--epochs','-e', default='5', type=int,
                     help='Number of training loops over all training data')
 args = parser.parse_args()
+print('Configuration: ', args)
 
 # Set random seeds
 np.random.seed(42)
@@ -55,7 +56,7 @@ model = tf.keras.models.Sequential([
         args.seq_len,
         args.num_blocks,
     ),
-    layers.Flatten(),
+    layers.GlobalAveragePooling1D(),
     layers.Dense(get_dataset_output_size(args.dataset)),
 ])
 
@@ -87,7 +88,7 @@ logs = {
 print('Best score: ', logs['best_acc'])
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-logfile_name = dir_path + '/logs/' + str(uuid.uuid4()) + '.json'
+logfile_name = dir_path + f'/logs/{args.model}-{int(time.time())}.json'
 os.makedirs(os.path.dirname(logfile_name), exist_ok=True)
 with open(logfile_name, 'w') as f:
     json.dump(logs, f, indent=4)
