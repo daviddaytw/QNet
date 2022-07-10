@@ -7,11 +7,12 @@ import sympy
 import numpy as np
 from numpy import pi
 
-def quantum_data_encoder(bits, symbols):
+def quantum_data_encoder(bits, symbols, embed_size):
     circuit = cirq.Circuit()
-    for bit in bits: circuit.append(cirq.H(bit))
+    seq_len = len(bits) // embed_size
     for idx, bit in enumerate(bits):
-        circuit.append(cirq.Z(bit)**symbols[idx])
+        circuit.append(cirq.X(bit)**symbols[idx])
+        circuit.append(cirq.rz( idx // embed_size / seq_len * pi)(bit))
     return circuit
 
 def quanttention(bits, embed_size):
@@ -59,7 +60,7 @@ def generate_model(embed_size, seq_len, depth = 1):
     circuit = cirq.Circuit()
     
     embedding_symbols = sympy.symbols(f'e0:{embed_size * seq_len}')
-    circuit = quantum_data_encoder(qubits, embedding_symbols)
+    circuit = quantum_data_encoder(qubits, embedding_symbols, embed_size)
     
     ff_symbols = sympy.symbols(f't0:{embed_size * depth * 2 * 3}')
     for d in range(depth):
