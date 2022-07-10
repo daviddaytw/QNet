@@ -3,14 +3,14 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 class FNetBlock(layers.Layer):
-    def __init__(self, embed_dim, ff_dim, use_bias=False):
+    def __init__(self, embed_dim, ff_dim, use_bias=True):
         super(FNetBlock, self).__init__()
         self.ffn = keras.Sequential([
             layers.Dense(ff_dim, activation="gelu", use_bias=use_bias),
             layers.Dense(embed_dim, use_bias=use_bias),
         ])
-        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6, center=False, scale=False)
-        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6, center=False, scale=False)
+        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
+        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
 
     def call(self, inputs):
         x_complex = tf.cast(inputs, tf.complex64)

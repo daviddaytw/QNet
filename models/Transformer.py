@@ -10,10 +10,10 @@ class TransformerBlock(layers.Layer):
             layers.Dense(ff_dim, activation="relu", use_bias=use_bias), 
             layers.Dense(embed_dim, use_bias=use_bias),
         ])
-        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6, center=False, scale=False)
-        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6, center=False, scale=False)
+        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
+        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
 
-    def call(self, inputs, training):
+    def call(self, inputs):
         attn_output = self.att(inputs, inputs)
         out1 = self.layernorm1(inputs + attn_output)
         ffn_output = self.ffn(out1)
