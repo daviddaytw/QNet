@@ -1,0 +1,73 @@
+\section{Model Analysis}
+
+In this section, we examine the complexity of QNet and contrast it with Transformer encoder and FNet. On a classical computer, the complexity of a model is an asymptotic function of the number of basic arithmetic operations used. However, on a Quantum Computer, the time to execute the circuit is not the number of gates but equal to the depth of the circuit. The circuit depth is determined by observing the critical path, which is done by counting the dependent entanglement gates. In addition to the circuit depth, we also assess the gate complexity, which represents the asymptotic number of basic gates.
+
+\begin{table}[htb!]
+    \centering
+    \begin{tabular}{ l|c|c  }
+        \hline
+        Circuit block & Gate Complexity & Circuit depth \\
+        \hline
+        Input Encoding & $O(n \cdot d)$ & $O(1)$ \\
+        Quanttention &  $O(n^2 \cdot d)$ & $O(n)$ \\
+        Feedforward &  $O(n \cdot d)$ & $O(d)$ \\
+        \hline
+    \end{tabular}
+    \caption{Quantum circuit depth analysis of QNet, $n$ is the sequence length, $d$ is the representation dimension.}
+    \label{table:depth}
+\end{table}
+
+In Table~\ref{table:depth}, the gate complexity and maximum circuit depth are computed.
+
+In the input encoding, every qubit will have 2 rotation gates, but no entangle gate exists. Thus, the circuit depth is $O(1)$.
+According to Theorem~2 in~\cite{892140} and the fact that there is no dependence on each Quantum Fourier Transform in Quanttention, the depth of Quanttention is $O(n)$.
+In the Simplified Quantum Feedforward Network, we use the CNOT gate to entangle the neighboring qubit in the embedding dimension, so the depth of the circuit is the size of the embedding dimension $O(d)$.
+
+\begin{table}[htb!]
+    \centering
+    \begin{tabular}{ l|c  }
+        \hline
+        Attention Type & Complexity\\
+        \hline
+        Quanttention & $O(n)$\\
+        Self-Attention &  $O(n^2 \cdot d)$\\
+        Fast Fourier Transform & $O(d \cdot  n \log n + n \cdot d \log d)$ \\
+        \hline
+    \end{tabular}
+    \caption{Comparison of attention layer complexity, $n$ is the sequence length, $d$ is the representation dimension.}
+    \label{table:attentions}
+\end{table}
+
+\begin{table}[htb!]
+    \centering
+    \begin{tabular}{ l|c  }
+        \hline
+        Feedforward Type & Complexity\\
+        \hline
+        Simplified Quantum Feedforward Network & $O(d)$ \\
+        Positional-wised Feedforward Network &  $O(n \cdot d^2)$ \\
+        \hline
+    \end{tabular}
+    \caption{Comparison of feedforward layer complexity, $n$ is the sequence length, $d$ is the representation dimension.}
+    \label{table:feedforward}
+\end{table}
+
+
+In Table~\ref{table:attentions}, the Quanttention is compared with Self-Attention from Transformer and Fast Fourier Transform from FNet. In Table~\ref{table:feedforward}, the Simplified Quantum Feedforward Network is compared with Positional-Wised Feedforward Network. The Positional-Wised Feedforward Network is used in almost all the Transform based architecture, such as FNet. 
+
+The model complexity is the addition of attention layer complexity and feedforward layer complexity. Based on Table~\ref{table:attentions} and Table~\ref{table:feedforward}, the overall model complexity is obtained as shown in Table~\ref{table:overval}.
+
+\begin{table}[htb!]
+    \centering
+    \begin{tabular}{ l|c  }
+        \hline
+        Model & Overall Complexity \\
+        \hline
+        QNet & $O(n + d)$ \\
+        Transformer &  $O(n^2 \cdot d + n \cdot d^2)$ \\
+        FNet &  $O(d \cdot  n \log n + n \cdot d \log d + n \cdot d^2)$ \\
+        \hline
+    \end{tabular}
+    \caption{Comparison of model overall operation complexity, $n$ is the sequence length, $d$ is the representation dimension.}
+    \label{table:overval}
+\end{table}

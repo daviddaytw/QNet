@@ -1,0 +1,21 @@
+\section{Preliminary}
+
+\subsection{Variational Quantum Eigensolver}
+
+The Variational Quantum Eigensolver (VQE)~\cite{} is a quantum-classical hybrid algorithm that can provide solutions in regimes which lies beyond the research of conventional algorithms. It is a form of quantum circuits with configurable parameters that is tuned by a classical computer in an iterative manner. *** detail of VQE *** The VQE approach has been shown to be flexible in circuit depth and the presence of noises. Therefore, while there is still lack of quantum error correction and fault-tolerant quantum computation in the noisy intermediate-scale quantum (NISQ) devices, quantum machine learning methods driven by variational quantum circuits can circumvent the complex quantum flaws that exist in the current quantum devices.
+
+
+\begin{figure}[htp]
+  \centering
+  \fbox{
+    \Qcircuit @C=2em @R=.7em {
+    & \gate{R(\alpha^1_1, \beta^1_1, \gamma^1_1)} & \ctrl{1} & \qw & \qw & \targ & \qw \\
+    & \gate{R(\alpha^1_2, \beta^1_2, \gamma^1_2)} & \targ & \ctrl{1} & \qw & \qw & \qw \\
+    & \gate{R(\alpha^1_3, \beta^1_3, \gamma^1_3)} & \qw & \targ & \ctrl{1} & \qw & \qw\\
+    & \gate{R(\alpha^1_4, \beta^1_4, \gamma^1_4)} & \qw & \qw & \targ & \ctrl{-3} & \qw
+    }
+  }
+  \caption{Single-Layer VQE with 4 quantum wires.}
+\end{figure}
+
+

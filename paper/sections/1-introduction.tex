@@ -1,0 +1,13 @@
+\section{Introduction}
+
+% Introduce Transformer
+The Transformer architecture family has achieved rapid and widespread dominance in various tasks, especially the models that use Transformer Encoder as its main component, for example, BERT-based model and Vision Transformer. Each block Transformer Encoder is composed of self multi-head attention and feed-forward layer. The former is an inductive bias that connects each token in the input through a relevance weighted basis of every other token, the latter is a linear transformation on each token.
+
+% Introduce the problem -> large training cost (memory and time)
+The one crucial shortcoming of Transformer is the time complexity of multi-head attention. It performs matrix multiplication operation that needs time complexity of $O(n^2 \cdot d)$ to relate the tokens. This defect makes the time cost of directly input the long sequence to the model unacceptable. However, multiple works have attempted to improve the performance of the Transformer Encoder, and most of them need to exchange accuracy with the speed.
+
+% Introduce the potential of quantum computer
+On the other hand, the hardware technologies of quantum computer are getting mature, which makes quantum algorithm as a possible solution to reduce the training cost of neural networks. At the time this paper is written, the quantum computer with 127 qubits was revealed~\cite{}. However, the actual capability of Quantum Machine Learning (QML) is still unknown. Multiple reports~\cite{} show that it indeed outperforms classical machine learning in certain situations. Most of the implementations of QML built on top of Variational Quantum Circuits (VQC), a promising class of algorithms that emerged as a central sub-field of QML. Based on VQC, multiple quantum feed-forward neural networks capable of universal quantum computation have been proposed~\cite{}, with the goal of using the potential of quantum computers in machine learning and attempting to train networks more effectively.
+
+% Introduce the work.
+In this work, we aim to investigate how quantum computer can improve the performance of Transformer Encoder. In order to achieve this goal, we propose QNet, a novel model that entirely inferences on quantum computer. The architecture of the model is inspired by Transformer Encoder. Several methods to encode the word embedding into quantum computer were experimented.
