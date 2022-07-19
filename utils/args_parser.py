@@ -14,7 +14,7 @@ def parse_args():
                         help='Number of mini-blocks in the model.')
     parser.add_argument('--batch_size', '-bs', default='128', type=int,
                         help='Number of samples per batch a node.')
-    parser.add_argument('--lr', '-lr', default='0.01', type=float,
+    parser.add_argument('--lr', '-lr', default='3e-4', type=float,
                         help='The initial learning rate.')
     parser.add_argument('--epochs','-e', default='5', type=int,
                         help='Number of training loops over all training data')
@@ -45,5 +45,8 @@ def solve_args(multi_worker_strategy: bool):
 
         # Global batch size should be batch_per_worker * num_workers
         args.batch_size *= len(args.distributed_nodes)
+    
+    # Increase learning rate with global batch size.
+    args.lr *= args.batch_size
 
     return args
