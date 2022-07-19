@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-tensorflow = "==2.7.0"
+intel-tensorflow = "==2.7.0"
 tensorflow-datasets = "==4.6.0"
 tensorflow-quantum = "==0.6.1"
 numpy = "*"
