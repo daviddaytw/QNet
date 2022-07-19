@@ -43,4 +43,7 @@ def solve_args(multi_worker_strategy: bool):
             'task': {'type': 'worker', 'index': args.distributed_node_index}
         })
 
+        # Global batch size should be batch_per_worker * num_workers
+        args.batch_size *= len(args.distributed_nodes)
+
     return args
