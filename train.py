@@ -41,8 +41,8 @@ def train(train_data, test_data):
         layers.Dense(get_dataset_output_size(args.dataset)),
     ])
 
-    lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, 16, alpha=1e-6)
-    opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn,)
+    lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * len(train_data), alpha=1e-2)
+    opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-09)
     model.compile(
         opt,
         loss=tf.keras.losses.CategoricalCrossentropy(),
