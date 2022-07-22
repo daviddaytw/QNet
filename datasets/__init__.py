@@ -14,8 +14,9 @@ output_size = {
 }
 
 def get_dataset(dataset: str, batch_size: int, train_ratio: int=0.83):
-    ds = tfds.load(mapping[dataset], split='train', as_supervised=True)\
-             .map(lambda x, y: (x, tf.one_hot(tf.cast(y, tf.int32), output_size[dataset])))
+    ds = tfds.load(mapping[dataset], split='train', as_supervised=True)
+    if output_size[dataset] > 2:
+        ds = ds.map(lambda x, y: (x, tf.one_hot(tf.cast(y, tf.int32), output_size[dataset])))
 
     train_data = ds.take(int(len(ds) * train_ratio))\
                    .shuffle(1000)\
@@ -27,4 +28,7 @@ def get_dataset(dataset: str, batch_size: int, train_ratio: int=0.83):
     return train_data, test_data
 
 def get_dataset_output_size(dataset: str):
-    return output_size[dataset]
+    if output_size[dataset] > 2:
+        return output_size[dataset]
+    else:
+        return 1

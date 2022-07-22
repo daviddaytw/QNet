@@ -43,11 +43,19 @@ def train(train_data, test_data):
 
     lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * len(train_data), alpha=1e-2)
     opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-09)
-    model.compile(
-        opt,
-        loss=tf.keras.losses.CategoricalCrossentropy(),
-        metrics=["accuracy"]
-    )
+    
+    if get_dataset_output_size(args.dataset) > 2:
+        model.compile(
+            opt,
+            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+            metrics=['categorical_accuracy']
+        )
+    else:
+        model.compile(
+            opt,
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+            metrics=['binary_accuracy']
+        )
 
     print(model.summary())
     fitting = model.fit(
@@ -60,7 +68,7 @@ def train(train_data, test_data):
 
     # Saving Logs
     logs = {
-        'best_acc': max(fitting.history['val_accuracy']),
+        'best_acc': max(fitting.history[('val_categorical_accuracy') if get_dataset_output_size(args.dataset) > 2 else 'val_binary_accuracy']),
         'config': vars(args),
         'history': fitting.history,
     }
