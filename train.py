@@ -30,13 +30,7 @@ def train(train_data, test_data):
     model = tf.keras.models.Sequential([
         tf.keras.Input(shape=(1,), dtype=tf.string),
         vectorize_layer,
-        get_model(
-            args.model,
-            vocab_size,
-            args.embed_size,
-            args.seq_len,
-            args.num_blocks,
-        ),
+        get_model(args, vocab_size),
         layers.GlobalAveragePooling1D(),
         layers.Dense(get_dataset_output_size(args.dataset)),
     ])

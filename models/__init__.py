@@ -8,5 +8,9 @@ mapping = {
     'fnet': FNet,
 }
 
-def get_model(model: str, vocab_size: int, embed_size: int, seq_len: int, num_blocks: int):
-    return mapping[model](vocab_size, seq_len, embed_size, num_blocks)
+def get_model(args, vocab_size: int):
+    model = mapping[args.model]
+    if args.model == 'qnet':
+        return model(vocab_size, args.seq_len, args.embed_size, args.num_blocks, args.qnet_depth)
+    else:
+        return model(vocab_size, args.seq_len, args.embed_size, args.num_blocks)

@@ -12,6 +12,8 @@ def parse_args():
                         help='Embedding size for each token.')
     parser.add_argument('--num_blocks', '-nb', default='1', type=int,
                         help='Number of mini-blocks in the model.')
+    parser.add_argument('--qnet_depth', default=1, type=int,
+                        help='Number of QNet blocks on the quantum computer, only appliable for QNet.')
     parser.add_argument('--batch_size', '-bs', default='128', type=int,
                         help='Number of samples per batch a node.')
     parser.add_argument('--lr', '-lr', default='3e-4', type=float,
