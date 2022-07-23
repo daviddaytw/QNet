@@ -33,12 +33,14 @@ class TokenAndPositionEmbedding(layers.Layer):
         return x + positions
 
 class TransformerEncoder(layers.Layer):
-    def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, ff_dim: int, num_heads: int = 1):
+    def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, num_blocks: int, num_heads: int = 1):
         super(TransformerEncoder, self).__init__()
         self.layers = tf.keras.models.Sequential([
             layers.Input(shape=(maxlen,)),
             TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim),
-            TransformerBlock(embed_dim, num_heads, ff_dim),
         ])
+        for _ in range(num_blocks):
+            self.layers.add(TransformerBlock(embed_dim, num_heads, embed_dim))
+
     def call(self, x):
         return self.layers(x)

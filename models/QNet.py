@@ -108,17 +108,23 @@ class QNet(layers.Layer):
         return tf.reshape(y, [-1, self.seq_len, self.embed_dim])
 
 class QNetEncoder(layers.Layer):
-    def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, ff_dim: int, num_heads: int = 1):
+    def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, num_blocks: int):
         super(QNetEncoder, self).__init__()
         self.embed = tf.keras.models.Sequential([
             layers.Input(shape=(maxlen,)),
             layers.Embedding(input_dim=vocab_size, output_dim=embed_dim),
         ])
-        self.encoders = tf.keras.models.Sequential([
-            ParametersLayer(vocab_size, embed_dim, 1),
-            QNet(embed_dim, maxlen, 1),
-        ])
+        self.encoders = []
+        for _ in range(num_blocks):
+            self.encoders.append(
+                tf.keras.models.Sequential([
+                    ParametersLayer(vocab_size, embed_dim, 1),
+                    QNet(embed_dim, maxlen, 1),
+                ])
+            )
 
     def call(self, x):
         x = self.embed(x)
-        return x + self.encoders(x)
+        for encoder in self.encoders:
+            x = x + encoder(x)
+        return x
