@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-REPO_FOLDER=$(dirname $(dirname $0))
+REPO_FOLDER=$(dirname $(dirname $(readlink -f $0)))
 JOB_NAME=QNet
 NOTIFICATION_EMAIL=test@test.com
 
