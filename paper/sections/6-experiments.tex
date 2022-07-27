@@ -1,19 +1,116 @@
+
+\begin{table*}[htb!]
+    \centering
+    \begin{tabular}{ |l|c|c|c|r|c|  }
+        \hline
+        Model & Embedding size & Num blocks & Initial LR & Accuracy & Params \\
+        \hline
+        QNet & 1 & 1 & 0.0003 & \textbf{22.12} & \\
+        FNet & 1 & 1 & 1e-5 & 4.65 & \\
+        Transformer& 1 & 1 & 1e-5 & 4.41 & \\
+        \hline
+        QNet & 2 & 1 & 0.0003 & \textbf{58.47} & \\
+        FNet & 2 & 1 & 1e-5 & 7.15 & \\
+        Transformer& 2 & 1 & 1e-5 & 5.56 & \\
+        \hline
+        QNet & 3 & 1 & 0.0003 & \textbf{70.97} & \\
+        \hline
+        FNet & 4 & 1 & 1e-5 & 24.00 & \\
+        Transformer& 4 & 1 & 1e-5 & \textbf{52.47} & \\
+        \hline
+        FNet & 8 & 1 & 1e-5 & 48.68 & \\
+        Transformer& 8 & 1 & 1e-5 & \textbf{73.65} & \\
+        \hline
+        FNet & 16 & 1 & 1e-5 & \textbf{71.18} & \\
+        \hline
+    \end{tabular}
+    \caption{The comparison of models when evaluating on Stackoverflow dataset.}
+    \label{table:colbert_result}
+\end{table*}
+
+\begin{table*}[htb!]
+    \centering
+    \begin{tabular}{ |l|c|c|c|r|c|  }
+        \hline
+        Model & Embedding size & Num blocks & Initial LR & Accuracy & Params \\
+        \hline
+        QNet & 1 & 1 & 0.0003 & \textbf{91.58} & \\
+        FNet & 1 & 1 & 1e-5 & 50.45 & \\
+        Transformer& 1 & 1 & 1e-5 & 50.45 & \\
+        \hline
+        QNet & 2 & 1 & 0.0003 & \textbf{91.72} & \\
+        FNet & 2 & 1 & 1e-5 & 76.13 & \\
+        Transformer& 2 & 1 & 1e-5 & 86.59 & \\
+        \hline
+        QNet & 3 & 1 & 0.0003 & \textbf{91.84} & \\
+        \hline
+        FNet & 4 & 1 & 1e-5 & 90.83 & \\
+        Transformer& 4 & 1 & 1e-5 & \textbf{92.29} & \\
+        \hline
+        FNet & 8 & 1 & 1e-5 & \textbf{91.99} & \\
+        \hline
+    \end{tabular}
+    \caption{The comparison of models when evaluating on ColBERT dataset.}
+    \label{table:stackoverflow_result}
+\end{table*}
+
 \section{Experiments}
-
-In our experiments, we focus on tasks that have short sequence input. We tested Transformer, FNet and QNet under same hyperparameters and classifier. For the text classification task, we use Cross Entropy loss to minimize the distance to the target.
-
-We implemented the QNet with TensorFlow machine learning framework and TensorFlow Quantum to simulate quantum computer. The code we used to train and evaluate our models is available at https://github.com/dj6082013/QNet.
 
 \subsection{Training}
 
-This section describes the training regime for our models.
+This section describes the training regime to evaluate our models.
+
+We implemented the QNet with TensorFlow, a machine learning framework, and TensorFlow Quantum, a  quantum machine learning library.
+
+The code we used to train and evaluate our models is available at https://github.com/dj6082013/QNet.
+
+We compare Transformer, FNet and ResQNet under common setting. Models are used as the backend for the same text classifier. The learning rate is adjusted to let each model has the best validation accuracy.
 
 \subsubsection{Training Data}
 
+In our experiments, we focus on tasks that have short sequence input. Two datasets are used to evaluate, StackOverflow dataset and ColBERT dataset. Both datasets consisting of a single sentence. Sentences were being lowered and punctuation stripped, tokens were separated by whitespace.
+
+StackOverflow datasets is a task to classify questions on StackOverflow.com, the data is consisting of randomly select 20,000 question titles from 20 different tags.
+
+ColBERT dataset is a task for humor detection, it is consisting of 200k formal short texts (100k positive and 100k negative).
+
+The statistical analysis of datasets is shown in Table \ref{table:dataset-statistic}.
+
+\begin{table}[htb!]
+    \centering
+    \begin{tabular}{ l|c|c|c|c  }
+        \hline
+        Dataset & Classes & Size & Length & $|V|$ \\
+        \hline
+        StackOverflow & 20 & 20,000 & 8.31/34 & 22956 \\
+        ColBERT & 2 & 200,000 & 12.81/22 & \\
+        \hline
+    \end{tabular}
+    \caption{Statistics for the text datasets. Length (mean/max): the mean and max length of texts, and $|V|$: the vocabulary size.}
+    \label{table:dataset-statistic}
+\end{table}
+
 \subsubsection{Hardware}
+
+GPUs and TPUs are not used in the experiments due to the insufficient memory to simulate quantum computer. Instead, our model are trained distributed in supercomputer cluster, the Taiwania 1. In this work, 4 computing nodes are used, each node are equipped double 20 cores Intel Xeon Gold 6148 CPU and 384 GB RAM. To train the model in the cluster, the MultiWorkerMirroredStrategy of TensorFlow are used as the distribution strategy for synchronous training on multiple workers.
 
 \subsubsection{Optimizer}
 
-\subsection{Results}
+We used the Adam optimizer with $\beta_1 = 0.9$, $\beta_2 = 0.98$ and $\epsilon = 10^{-9}$.
 
+In the distributed training environment, the loss of model is reduced to share cross multiple workers. Therefore, we have to adjust the learning rate according to batch size and number of nodes. The adjusted learning rate is defined as global learning rate in Equation \cite{equ:global_lr}.
+
+\begin{equation} \label{equ:global_lr}
+global\_lr = initial\_lr \times batch\_size \times num\_nodes
+\end{equation}
+
+We varied the learning rate over the course of training, according to the Cosine Decay strategy in Equation \cite{equ:lr}. In this work, $\alpha = 10^{-2}$.
+
+\begin{equation} \label{equ:lr}
+lr = global\_lr \times ( \frac{1}{2} (1 + cos( \frac{step}{total\_steps}\pi))(1 - \alpha) + \alpha)
+\end{equation}
+
+For the text classification tasks cross entropy are used to minimize the distance to the target, in specific, Categorical Cross Entropy loss for multi-class classification and Binary Cross Entropy for single class classification.
+
+\subsection{Results}
 \subsubsection{Text Classification}

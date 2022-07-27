@@ -16,55 +16,13 @@ The challenge to build a sequence-to-sequence learning model on current NISQ dev
 
 \subsection{Architecture}
 
-\begin{figure*}[htp]
-  \centering
-  \fbox{
-    \tikzstyle{layer} = [draw, text centered, text width=14em, minimum height=2em, rounded corners]
-    \tikzstyle{ffblock} = [layer, fill=cyan!30]
-    \tikzstyle{attnblock} = [layer, fill=orange!30]
-    \tikzstyle{measure} = [layer, fill=green!10]
-    \tikzstyle{encode} = [layer, fill=red!20]
-    \tikzstyle{params} = [layer, fill=red!20]
-    \begin{tikzpicture}
-        \node (output) [text centered, text width=14em] {Outputs};
-        \node (measure) [measure] [below of=output] {Pauli-Z Measurement};
-        \node (ffblock) [ffblock] [below of=measure] {Simplified Quantum Feedforward};
-        \node (attn) [attnblock] [below of=ffblock] {Quanttention};
-        \node (encode) [encode] [below of=attn] {Input Encoding};
-        \node (parameters) [params] [below of=encode] {Parameters Layer};
-        \node (input) [text centered, text width=14em] [below of=parameters] {Inputs};
-        
-        \begin{scope}[on background layer]
-            \node [fill=cyan!20, rounded corners, fit={(encode) (attn) (ffblock) (measure) }] {};
-            \node [fill=orange!20, rounded corners, fit={(input) (parameters)}] {};
-            \node [fill=orange!20, rounded corners, fit={(output)}] {};
-            \node [draw, densely dashed, rounded corners, fit={(attn) (ffblock)}, label={right:$\times N$}] {};
-            
-            \draw[->] (input) -- (parameters);
-            \draw[->] (parameters) -- (encode);
-            \draw[->] (encode) -- (attn);
-            \draw[->] (attn) -- (ffblock);
-            \draw[->] (ffblock) -- (measure);
-            \draw[->] (measure) -- (output);
-        \end{scope}
-        
-        \matrix [draw,below left] at ($(output)+(7, 0.5)$) {
-          \node [fill=orange!20, rounded corners, label=right:Classical Computer] {}; \\
-          \node [fill=cyan!20, rounded corners, label=right:Quantum Computer] {}; \\
-        };
-    \end{tikzpicture}
-  }
-  \caption{The QNet Encoder Block Architecture.}
-  \label{fig:qnet-encoder}
-\end{figure*}
-
 In this section, we will describe the concept of QNet and purpose a residual connected QNet (ResQNet) which use QNet as its main component.
 
 The concept of QNet can be separated into 3 parts. First, the word embedding is encoded onto a quantum computer. Second, a learnable word vector transformation and a token mixing mechanism are applied repeatedly to learn the representation of the combination of words. Finally, the measurement is applied on every qubit to take the quantum state back to classical computer. Since the result will be a flattened tensor, it has to be reshaped back to the original input shape.
 
 The concept of QNet is simple. However, the actual process of QNet encoder is more complex and shown in Fig.~\ref{fig:qnet-encoder}. The quantum circuit has to be constructed for quantum compute before the execution. The parameters of word embedding and learnable word vector transformation have to be coded onto the circuit. The Parameters Layer in the figure prepares the parameters needed by the quantum circuit. The Input Encoding layer in the figure maps the word embedding into each qubit. The Quanttention layer introduces the mechanism to relate each token with others. The Simplified Quantum Feedforward Layer performs learnable unitary transformation on each token. The Quanttention layer and Simplified Quantum Feedforward layer can be repeated multiple times to mix the tokens more evenly. The QNet is only used to generate encoded representation. We will still use classical neural network to project the result of QNet into output space. To take the quantum data back to the classical computer, the Pauli-Z observable is used to measure the computed qubits.
 
-\begin{figure}[htp]
+\begin{figure}[htp!]
   \centering
   \fbox{
     \tikzstyle{layer} = [draw, text centered, text width=14em, minimum height=2em, rounded corners]
@@ -81,7 +39,7 @@ The concept of QNet is simple. However, the actual process of QNet encoder is mo
         \node (encode) [encode] [below of=begin] {Embedding Layer};
         
         \begin{scope}[on background layer]
-            \node [draw, densely dashed, rounded corners, fit={($(begin)-(3.75, 0.2)$) ($(add)+(3.75, 0.2)$)}, label={right:$\times N$}] {};
+            \node [draw, densely dashed, rounded corners, fit={($(begin)-(3.5, 0.2)$) ($(add)+(3.5, 0.2)$)}, label={right:$\times N$}] {};
             \draw[->] (encode) -- (qnet);
             \draw[->] (qnet) -- (add);
             \draw[->] (add) -- (dense);
@@ -111,7 +69,7 @@ We use two axes of qubits to encode data into the quantum computer. Word embeddi
 x \rightarrow |\psi_x\rangle = ( \prod_{i=1}^n \prod_{j=1}^d R_x( \frac{(i-1) \pi}{n} )R_z(x^i_j) ) |0\rangle
 \end{equation}
 
-\begin{figure}[htp]
+\begin{figure}[htp!]
     \centering
     \fbox{
         \includegraphics[width=7cm]{images/word-sphere.png}
@@ -120,7 +78,7 @@ x \rightarrow |\psi_x\rangle = ( \prod_{i=1}^n \prod_{j=1}^d R_x( \frac{(i-1) \p
     \label{fig:word-sphere}
 \end{figure}
 
-\begin{figure}[htp]
+\begin{figure}[htp!]
   \centering
   \fbox{
     \Qcircuit @C=2em @R=.7em {
@@ -141,7 +99,7 @@ In this work, we demonstrate why dot-product attention cannot be applied and pro
 
 Since qubits are precious in the current stage NISQ, we do not want to use auxiliary qubits in this submodule. It is impractical to do the dot-product attention in the current scale of NISQ devices. For instance, the circuit of quantum state dot-product is shown in Fig.~\ref{fig:dot-product}. $\theta_1$ and $\theta_2$ are sets of learnable parameter for rotation gates in VQE. After the dot-product operation, $|\psi_1\rangle$ and $|\psi_2\rangle$ will be corrupted and cannot be recovered to the same state as before. Therefore, each time when the dot product is computed, the quantum state needs to be duplicated. There are at least $O(n \times d)$ dot-products, so this method is not feasible in the current NISQ device.
 
-\begin{figure}[htp]
+\begin{figure}[htp!]
   \centering
   \fbox{
     \Qcircuit @C=2em @R=.7em {
@@ -181,7 +139,7 @@ The Quanttention mechanism employs this unitary for each embedding. The formula 
 
 Therefore, Quanttention is made up of Quantum Fourier Transforms performed on all tokens for each qubit in the embedding. The trainable quantum circuit is shown in Fig.~\ref{fig:quanttention}.
 
-\begin{figure}[htp]
+\begin{figure}[htp!]
   \centering
   \fbox{
     \Qcircuit @C=2em @R=.7em {
@@ -202,7 +160,7 @@ Quantum neural networks are known to have a three-dimensional architecture, with
 
 Since the goal of this work is to construct a viable machine learning model, the Feedforward layer cannot include auxiliary qubits. Hence, the quantum neural network must be simplified. The circuit is shown in Fig.~\ref{fig:feedforward}
 
-\begin{figure}[htp]
+\begin{figure}[htp!]
   \centering
   \fbox{
     \Qcircuit @C=2em @R=.7em {
@@ -231,7 +189,7 @@ U_\mathbf{G} = H^{\otimes m}(2|\psi\rangle\langle \psi|- I)H^{\otimes m}
 
 The circuit of $\mathbf{G}$ is shown in Fig.~\ref{fig:g-operator}.
 
-\begin{figure}[htp]
+\begin{figure}[htp!]
   \centering
   \fbox{
     \Qcircuit @C=2em @R=.7em {
@@ -243,3 +201,6 @@ The circuit of $\mathbf{G}$ is shown in Fig.~\ref{fig:g-operator}.
   \caption{Circuit of \mathbf{G}}
   \label{fig:g-operator}
 \end{figure}
+
+\subsubsection{Measurement}
+In the end, quantum measurements on Pauli-Z are performed for every qubit. The measured result is a 1-D tensor with all entries lie in $[-1, 1]$. In order to pass the output into next block, that is, making the QNet as a sequence to sequence model. Tensor are shaped to the shape before entering the QNet.

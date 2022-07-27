@@ -1,8 +1,33 @@
 \section{Preliminary}
 
+This section introduces the required quantum computing knowledge.
+
+Quantum machine learning is a category of machine learning that makes use of quantum computers. In other words, quantum machine learning utilizes the properties of qubits and quantum gates. Instead of building machine learning models that purely support quantum computer, models designed in quantum-classical hybrid structure are more common for NISQ devices. One of the reasons is that the input data is always stored on classical computer because the decoherence of quantum computer will corrupt the data. In quantum-classical hybrid models, the quantum computer is used to either provide the quantum data by extracting input features or employ a quantum machine learning algorithm as the classifier.
+
+In this work, our model can be seen as a representation encoder. We pipe the output of QNet to a classical classifier. However, the model does not restrict to this method. It can directly connect to a quantum neural network classifier to make it a pure quantum model.
+
+\subsection{Quantum Fourier Transform}
+Quantum Fourier transform is the quantum implementation of the discrete Fourier transform over the amplitudes of a quantum state. It converts the amplitudes from time domain to frequency domain.
+
+Similar to discrete Fourier transform, Quantum Fourier transform maps the quantum state from $|X\rangle = \sum_0^{N-1} x_j|j\rangle$ to $|Y\rangle = \sum_0^{N-1} y_k |k\rangle$ according to Equation~\ref{equ:qft}, where $\omega^{jk}_N = e^{2\pi i \frac{jk}{N}}$.
+
+\begin{equation} \label{equ:qft}
+y_k = \frac{1}{\sqrt{N}} \sum_0^{N-1} x_j \omega_N^{jk}
+\end{equation}
+
+Quantum Fourier transform can also be expressed by the unitary matrix as Equation~\ref{equ:qft_u} with $\omega$ defined the same as above.
+
+\begin{equation} \label{equ:qft_u}
+U_{QFT} = \frac{1}{\sqrt{N}} \sum_{j=0}^{N-1}  \sum_{k=0}^{N-1} \omega_{N}^{jk} |k\rangle \langle j|
+\end{equation}
+
+In this work, Quantum Fourier transform is used in the purposed attention-like mechanism called "Quanttention".
+
 \subsection{Variational Quantum Eigensolver}
 
-The Variational Quantum Eigensolver (VQE)~\cite{} is a quantum-classical hybrid algorithm that can provide solutions in regimes which lies beyond the research of conventional algorithms. It is a form of quantum circuits with configurable parameters that is tuned by a classical computer in an iterative manner. *** detail of VQE *** The VQE approach has been shown to be flexible in circuit depth and the presence of noises. Therefore, while there is still lack of quantum error correction and fault-tolerant quantum computation in the noisy intermediate-scale quantum (NISQ) devices, quantum machine learning methods driven by variational quantum circuits can circumvent the complex quantum flaws that exist in the current quantum devices.
+The Variational Quantum Eigensolver (VQE)~\cite{} is a quantum-classical hybrid algorithm that can provide solutions in regimes which lies beyond the research of conventional algorithms. It is a form of quantum circuits with configurable parameters that are tuned by a classical computer in an iterative manner. In Fig.~\ref{fig:vqe}, a single layer VQE with 4 qubits is presented. $\alpha, \beta, \gamma$ are sets of learnable parameters to rotate qubits in 3-axis. Rotation gates are usually followed by entanglement gates to let qubits interact with each other to exchange the information. The VQE is to find an optimal transformation in a set of unitary transformations, which depends on the design of the quantum circuit.
+
+The VQE approach has been shown to be flexible in circuit depth and the presence of noises. Therefore, while there is still lack of quantum error correction and fault-tolerant quantum computation in the noisy intermediate-scale quantum (NISQ) devices, quantum machine learning methods driven by variational quantum circuits can circumvent the complex quantum flaws that exist in the current quantum devices.
 
 
 \begin{figure}[htp]
@@ -16,6 +41,5 @@ The Variational Quantum Eigensolver (VQE)~\cite{} is a quantum-classical hybrid 
     }
   }
   \caption{Single-Layer VQE with 4 quantum wires.}
+  \label{fig:vqe}
 \end{figure}
-
-
