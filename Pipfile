@@ -8,8 +8,11 @@ intel-tensorflow = "==2.7.0"
 tensorflow-datasets = "==4.6.0"
 tensorflow-quantum = "==0.6.1"
 numpy = "*"
+bio = "*"
+transformers = "*"
 
 [dev-packages]
+ipykernel = "*"
 
 [requires]
 python_version = "3.8"
