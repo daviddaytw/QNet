@@ -5,6 +5,7 @@ from . import ColBERTDataset, StackOverflowDataset, T2TDataset
 mapping = {
     'colbert': 'ColBERTDataset',
     'stackoverflow': 'StackOverflowDataset',
+    'agnews': 'ag_news_subset', #AGNewsSubset
     't2t': 'T2TDataset',
 }
 
@@ -12,11 +13,15 @@ mapping = {
 output_size = {
     'colbert': 2,
     'stackoverflow': 20,
+    'agnews': 4,
 }
+
+def list_dataset():
+    return mapping.keys()
 
 def get_dataset(dataset: str, batch_size: int, train_ratio: int=0.83):
     # for classification
-    if dataset in ['colbert', 'stackoverflow']:
+    if dataset in ['colbert', 'stackoverflow', 'agnews']:
         ds = tfds.load(mapping[dataset], split='train', as_supervised=True)
         if output_size[dataset] > 2:
             ds = ds.map(lambda x, y: (x, tf.one_hot(tf.cast(y, tf.int32), output_size[dataset])))

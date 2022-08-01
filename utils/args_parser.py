@@ -1,9 +1,10 @@
 import argparse, os, json
+import datasets
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser(description='Configure training arugments.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dataset', '-d', default='stackoverflow', type=str,
-                        help='Select the training or evaluation dataset (stackoverflow, colbert, t2t).')
+                        help='Select the training or evaluation dataset (' + ','.join(datasets.list_dataset()) + ').')
     parser.add_argument('--model', '-m', default='qnet', type=str,
                         help='Select the trainig model (transformer, qnet, fnet)')
     parser.add_argument('--seq_len', '-ml', default='8', type=int,

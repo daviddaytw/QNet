@@ -146,7 +146,7 @@ def main(args):
 
     train_or_all_data, test_data = get_dataset(args.dataset, batch_size=args.batch_size)
     # for classification
-    if args.dataset in ['colbert', 'stackoverflow']:
+    if args.dataset in ['colbert', 'stackoverflow', 'agnews']:
         train(train_or_all_data, test_data)
     # for mask LM
     elif args.dataset in ['t2t']:
