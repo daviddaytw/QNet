@@ -1,9 +1,9 @@
 import argparse, os, json
 
-def parse_args():
+def parse_args(args=None):
     parser = argparse.ArgumentParser(description='Configure training arugments.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dataset', '-d', default='stackoverflow', type=str,
-                        help='Select the training dataset.')
+                        help='Select the training or evaluation dataset (stackoverflow, colbert, t2t).')
     parser.add_argument('--model', '-m', default='qnet', type=str,
                         help='Select the trainig model (transformer, qnet, fnet)')
     parser.add_argument('--seq_len', '-ml', default='8', type=int,
@@ -24,12 +24,12 @@ def parse_args():
                         help='Domain of all nodes')
     parser.add_argument('--distributed_node_index','-dni', type=int,
                         help='Index of current Node')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     return args
 
-def solve_args(multi_worker_strategy: bool):
-    args = parse_args()
+def solve_args(args = None, multi_worker_strategy: bool = False):
+    args = parse_args(args)
     print('Configuration: ', args)
 
     # should set env before use `MultiWorkerStrategy` decorator
@@ -47,7 +47,7 @@ def solve_args(multi_worker_strategy: bool):
 
         # Global batch size should be batch_per_worker * num_workers
         args.batch_size *= len(args.distributed_nodes)
-    
+
     # Increase learning rate with global batch size.
     args.lr *= args.batch_size
 
