@@ -76,7 +76,7 @@ def generate_model(embed_size, seq_len, depth = 1):
 
 
 class ParametersLayer(layers.Layer):
-    def __init__(self, vocab_size, embed_dim, depth):
+    def __init__(self, embed_dim, depth):
         super(ParametersLayer, self).__init__()
         self.parameters = tf.Variable(
             np.random.uniform(0, 2 * np.pi, (1, 2 * depth * 3 * embed_dim)),
@@ -118,7 +118,7 @@ class QNetEncoder(layers.Layer):
         for _ in range(num_blocks):
             self.encoders.append(
                 tf.keras.models.Sequential([
-                    ParametersLayer(vocab_size, embed_dim, depth),
+                    ParametersLayer(embed_dim, depth),
                     QNet(embed_dim, maxlen, depth),
                 ])
             )
