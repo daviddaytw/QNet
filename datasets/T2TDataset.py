@@ -1,4 +1,3 @@
-import gzip
 import tensorflow_datasets as tfds
 tfds.core.utils.gcs_utils._is_gcs_disabled = True
 
@@ -13,8 +12,7 @@ random.seed(42)
 _CITATION = """
 """
 _HOMEPAGE = "https://www.ncbi.nlm.nih.gov/assembly/GCA_009914755.4/"
-_URL = 'https://www.ncbi.nlm.nih.gov/projects/r_gencoll/ftp_service/nph-gc-ftp-service.cgi/?HistoryId=MCID_62e687224dc2995e5635da8f&QueryKey=4&ReleaseType=RefSeq&FileType=GENOME_FASTA&Flat=true'
-_GZ_FILE = 'ncbi-genomes-2022-07-31/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz'
+_URL = 'https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz'
 
 def _generate_documents(chr_sequence, sentences_bounds=(50, 100), lenghts_bounds=(500, 1000)):
         """
@@ -61,13 +59,14 @@ class T2TDataset(tfds.core.GeneratorBasedBuilder):
     ]
 
   def _generate_examples(self, path):
-    filepath = path / _GZ_FILE
     i = 0
-    with gzip.open(filepath, "rt") as f:
-        for record in tqdm(SeqIO.parse(f, "fasta")):
-            if "mitochondrion" not in record.description:
-                for document in tqdm(_generate_documents(record.seq), desc=record.description):
-                    yield i, {'text': "\n".join(document) + "\n"}
-                    i += 1
+    for record in tqdm(SeqIO.parse(path, "fasta")):
+        if "mitochondrion" not in record.description:
+            for document in tqdm(_generate_documents(record.seq), desc=record.description):
+                yield i, {'text': "\n".join(document) + "\n"}
+                i += 1
 
+    print(i)
+
+for i in tfds.load('T2TDataset'):
     print(i)
