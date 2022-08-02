@@ -7,6 +7,9 @@ class DatasetWrapper():
         self.name = name
         self.task = task
         self.output_size = output_size
+        self.strategy = tf.distribute.MultiWorkerMirroredStrategy()
+        self.options = tf.data.Options()
+        self.options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 
     def getTask(self):
         return self.task
@@ -18,6 +21,8 @@ class DatasetWrapper():
             return 1
     
     def getData(self, batch_size: int, train_ratio: int=0.83):
+        print('Num Replicas In Sync: ', self.strategy.num_replicas_in_sync)
+
         if self.task == 'classification':
             ds = tfds.load(self.name, split='train', as_supervised=True)
             if self.output_size > 2:
@@ -40,14 +45,9 @@ class DatasetWrapper():
                         .shuffle(1000)
             test_data = None
 
-        strategy = tf.distribute.MultiWorkerMirroredStrategy()
-        options = tf.data.Options()
-        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-        print('Num Replicas In Sync: ', strategy.num_replicas_in_sync)
-
-        train_data = train_data.with_options(options)
+        train_data = train_data.with_options(self.options)
         if test_data is not None:
-            test_data = test_data.with_options(options)
+            test_data = test_data.with_options(self.options)
         return train_data, test_data
 
 

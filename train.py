@@ -1,6 +1,5 @@
 # since we encounter this [problem](https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/distribute/multi_worker_with_keras.ipynb?hl=id-IDCache#scrollTo=Mhq3fzyR5hTw)
 # it must put on the file starts before initialize other class and after set env.
-from trainers import get_trainer
 from utils.args_parser import solve_args
 args = solve_args(multi_worker_strategy=True)
 
