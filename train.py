@@ -3,20 +3,18 @@
 from utils.args_parser import solve_args
 args = solve_args(multi_worker_strategy=True)
 
-from utils.distributed_train import MultiWorkerStrategy
-
 import os, time, json
 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
-from datasets import get_dataset, get_dataset_output_size
+from datasets import DatasetWrapper, get_dataset
 from models import get_model, MLM
 from transformers import AutoTokenizer
 from utils.mlm_utils import get_masked_input_and_labels
 
-@MultiWorkerStrategy
-def mlm_evaluation(all_data):
+def mlm_evaluation(dataset: DatasetWrapper):
+    all_data = dataset.getData(args.batch_size)
     tokenizer = AutoTokenizer.from_pretrained('AIRI-Institute/gena-lm-bert-base')
     mask_token_id = tokenizer.convert_tokens_to_ids("[MASK]")
 
@@ -35,8 +33,7 @@ def mlm_evaluation(all_data):
         result = tf.py_function(func=encode, inp=[inputs['text']], Tout=[tf.int64, tf.int64, tf.int64])
         return result
 
-    all_data = all_data.map(tf_encode)\
-                       .batch(args.batch_size)
+    all_data = all_data.map(tf_encode).batch(args.batch_size)
 
     vocab_size = len(tokenizer)
 
@@ -58,29 +55,16 @@ def mlm_evaluation(all_data):
                 verbose=1
             )
 
-    # Saving Logs
-    logs = {
-        'config': vars(args),
-        'history': fitting.history,
-    }
+    save_log(fitting.history)
 
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    logfile_name = dir_path + f'/logs/{args.model}-{int(time.time())}.json'
-    os.makedirs(os.path.dirname(logfile_name), exist_ok=True)
-    with open(logfile_name, 'w') as f:
-        json.dump(logs, f, indent=4)
-    print('Log file saved at: ', logfile_name)
-
-    return model
-
-
-@MultiWorkerStrategy
-def train(train_data, test_data):
+def train(dataset: DatasetWrapper):
     vectorize_layer = layers.TextVectorization(
         standardize="lower_and_strip_punctuation",
         output_mode='int',
         output_sequence_length=args.seq_len
     )
+
+    train_data, test_data = dataset.getData(args.batch_size)
 
     train_text = train_data.flat_map(lambda text, label: tf.data.Dataset.from_tensor_slices(text))
     vectorize_layer.adapt(train_text)
@@ -92,13 +76,13 @@ def train(train_data, test_data):
         vectorize_layer,
         get_model(args, vocab_size),
         layers.GlobalAveragePooling1D(),
-        layers.Dense(get_dataset_output_size(args.dataset)),
+        layers.Dense(dataset.getOutputSize()),
     ])
 
     lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * len(train_data), alpha=1e-2)
     opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-09)
 
-    if get_dataset_output_size(args.dataset) > 2:
+    if dataset.getOutputSize() > 2:
         model.compile(
             opt,
             loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
@@ -121,12 +105,20 @@ def train(train_data, test_data):
             )
 
     # Saving Logs
+    if dataset.getOutputSize() > 2:
+        save_log(fitting.history, 'val_categorical_accuracy')
+    else:
+        save_log(fitting.history, 'val_binary_accuracy')
+
+def save_log(history, val_metric: str=None):
     logs = {
-        'best_acc': max(fitting.history[('val_categorical_accuracy') if get_dataset_output_size(args.dataset) > 2 else 'val_binary_accuracy']),
         'config': vars(args),
-        'history': fitting.history,
+        'history': history,
     }
-    print('Best score: ', logs['best_acc'])
+
+    if val_metric != None:
+        logs['best_acc'] = max(history[val_metric])
+        print('Best score: ', logs['best_acc'])
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     logfile_name = dir_path + f'/logs/{args.model}-{int(time.time())}.json'
@@ -144,13 +136,11 @@ def main(args):
     print("Eager mode: ", tf.executing_eagerly())
     print("GPU is", "available" if tf.config.list_physical_devices("GPU") else "NOT AVAILABLE")
 
-    train_or_all_data, test_data = get_dataset(args.dataset, batch_size=args.batch_size)
-    # for classification
-    if args.dataset in ['colbert', 'stackoverflow', 'agnews']:
-        train(train_or_all_data, test_data)
-    # for mask LM
-    elif args.dataset in ['t2t']:
-        mlm_evaluation(train_or_all_data)
+    dataset = get_dataset(args.dataset)
+    if dataset.getTask() == 'classification':
+        train(dataset)
+    if dataset.getTask() == 'mlm':
+        mlm_evaluation(dataset)
 
 if __name__ == '__main__':
     main(args)
