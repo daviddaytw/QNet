@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from . import ColBERTDataset, StackOverflowDataset, T2TDataset, RentTheRunwayDataset
+from . import ColBERTDataset, StackOverflowDataset, T2TDataset, RentTheRunwayDataset, ClickbaitDataset
 
 class DatasetWrapper():
     def __init__(self, name: str, task: str, output_size: int=None):
@@ -19,7 +19,7 @@ class DatasetWrapper():
             return self.output_size
         else:
             return 1
-    
+
     def getData(self, batch_size: int, train_ratio: int=0.83):
         print('Num Replicas In Sync: ', self.strategy.num_replicas_in_sync)
 
@@ -53,6 +53,7 @@ class DatasetWrapper():
 
 dataset = {
     'colbert': DatasetWrapper('ColBERTDataset', 'classification', 2),
+    'clickbait': DatasetWrapper('ClickbaitDataset', 'classification', 2),
     'stackoverflow': DatasetWrapper('StackOverflowDataset', 'classification', 20),
     'agnews': DatasetWrapper('ag_news_subset', 'classification', 4),
     't2t': DatasetWrapper('T2TDataset', 'mlm'),
