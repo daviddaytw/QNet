@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from . import ColBERTDataset, StackOverflowDataset, T2TDataset
+from . import ColBERTDataset, StackOverflowDataset, T2TDataset, RentTheRunwayDataset
 
 class DatasetWrapper():
     def __init__(self, name: str, task: str, output_size: int=None):
@@ -26,7 +26,13 @@ class DatasetWrapper():
             train_data = ds.take(int(len(ds) * train_ratio))\
                         .shuffle(1000)\
                         .batch(batch_size)
-
+            test_data = ds.skip(int(len(ds) * train_ratio))\
+                        .batch(batch_size)
+        if self.task == 'regression':
+            ds = tfds.load(self.name, split='train', as_supervised=True)
+            train_data = ds.take(int(len(ds) * train_ratio))\
+                        .shuffle(1000)\
+                        .batch(batch_size)
             test_data = ds.skip(int(len(ds) * train_ratio))\
                         .batch(batch_size)
         if self.task == 'mlm':
@@ -50,6 +56,7 @@ dataset = {
     'stackoverflow': DatasetWrapper('StackOverflowDataset', 'classification', 20),
     'agnews': DatasetWrapper('ag_news_subset', 'classification', 4),
     't2t': DatasetWrapper('T2TDataset', 'mlm'),
+    'rentrunway': DatasetWrapper('RentTheRunwayDataset', 'regression'),
 }
 
 def list_dataset():
