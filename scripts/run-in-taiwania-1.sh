@@ -55,14 +55,16 @@ export KMP_BLOCKTIME=30
 $CONDA_ENV_PATH/bin/python $REPO_FOLDER/train.py \$@ $@
 """ > ~/run.sh
 
+EMAIL_REGEX="^[a-zA-Z0-9\._-]+\@[a-zA-Z0-9._-]+\.[a-zA-Z]+\$"
 echo '#!/bin/bash'"""
 #PBS -l select=$NODE_COUNT:ncpus=$NCUPS_PER_NODE
 #PBS -N $JOB_NAME
 #PBS -q $NODE_NAME
 #PBS -P $PROJECT_ID
 #PBS -j oe
-#PBS -M $NOTIFICATION_EMAIL
 #PBS -m abe
+$(if [[ $NOTIFICATION_EMAIL =~ $EMAIL_REGEX ]] ; then echo "#PBS -M $NOTIFICATION_EMAIL"; fi)
+
 echo \"The base node is: \$(hostname)\" >> $LOG_FILE 2>&1
 # get node information from nodefile
 NODES=(\$( cat \$PBS_NODEFILE | uniq ))
