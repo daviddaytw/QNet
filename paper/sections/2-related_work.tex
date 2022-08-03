@@ -2,10 +2,10 @@
 
 \subsection{Transformer Architecture Family}
 
-With the development of deep learning, Natural Language Processing (NLP) technology has become progressively mature. In recent years, it has achieved very good results in tasks such as sentiment analysis~\cite{}, machine translation~\cite{}, speech recognition~\cite{}, and dialogue robots~\cite{}.
-Natural language processing refers to a technology that enables computers to analyze and understand human language, and human language has a sequence and context relationship. Recurrent Neural Network (RNN) is often used for such time series data. However, because RNN is difficult to perform parallel operations, Google proposed a network architecture that does not use RNN and CNN, but only a self-attention mechanism - Transformer~\cite{NIPS2017_3f5ee243}, in which each block is composed of Multi-head attention and a Feedforward layer.
+With the development of deep learning, Natural Language Processing (NLP) technology has become progressively mature.
+Natural language processing refers to a technology that enables computers to analyze and understand human language, and human language has a sequence and context relationship. Recurrent Neural Network (RNN) is often used for such time series data. However, because RNN is difficult to perform parallel operations, Google proposed a network architecture that does not use RNN and CNN, but only a self-attention mechanism - Transformer~\cite{NIPS2017_3f5ee243}, in which each block is composed of Multi-head attention and a Feedforward layer. In recent years, it has achieved very good results in tasks such as sentiment analysis~\cite{naseem2020transformer}~\cite{wang2020transmodality}, machine translation~\cite{vaswani2018tensor2tensor}, speech recognition~\cite{dong2018speech},~\cite{gulati2020conformer} and dialogue robots~\cite{zandie2020emptransfo}~\cite{suglia2021embodied}.
 
-The Transformer architecture has inspired multiple large scale NLP models. For instance, Generative Pretrained Transformer - 3 (GPT-3)~\cite{NEURIPS2020_1457c0d6} is a new generation of learning language model released by OpenAI~\cite{}. GPT-3 is based on the Transformer decoder. On the contrary, Bidirectional Encoder Representations from Transformers (BERT) is mainly composed with a stack of Transformer encoder and a classification layer. BERT is a transformer-based machine learning technique for NLP pre-training developed by Google. It is designed to help computers understand the meaning of ambiguous language in text by using surrounding text to establish context.
+The Transformer architecture has inspired multiple large scale NLP models. For instance, Generative Pretrained Transformer (GPT)~\cite{radford2019language}~\cite{NEURIPS2020_1457c0d6} is a new generation of learning language model released by OpenAI. GPT is based on the Transformer decoder. On the contrary, Bidirectional Encoder Representations from Transformers (BERT)~\cite{devlin2018bert} is mainly composed with a stack of Transformer encoder and a classification layer. BERT is a transformer-based machine learning technique for NLP pre-training developed by Google. It is designed to help computers understand the meaning of ambiguous language in text by using surrounding text to establish context.
 
 The QNet in this work is isomorphic to Transformer Encoder, it can be said as a BERT related model.
 
@@ -13,57 +13,15 @@ The QNet in this work is isomorphic to Transformer Encoder, it can be said as a 
 
 Recent works have shown the potential mathematics transformations that can replace Multi-head self-attention. The approach to replace self-attention with a transpose operation and a Feedforward layer has been proved to be able to achieve convincing results.
 
-The work in~\cite{DBLP:journals/corr/abs-2105-02723} starts the question about the primitive property of attention mechanism. The work by James~\etal~\cite{DBLP:journals/corr/abs-2105-03824} shows that standard un-parameterized discrete Fourier transform can speed up Transformer encoder architectures, with limited accuracy costs, by replacing the self-attention sublayer with simple linear transformations that \emph{mix} input tokens.
+The work in~\cite{DBLP:journals/corr/abs-2105-02723} starts the question about the primitive property of attention mechanism. The work by \cite{DBLP:journals/corr/abs-2105-03824} shows that standard un-parameterized discrete Fourier transform can speed up Transformer encoder architectures, with limited accuracy costs, by replacing the self-attention sublayer with simple linear transformations that \emph{mix} input tokens.
 
 \subsection{Quantum Neural Network}
 By combining artificial neural networks with quantum computing principles, quantum neural networks have a strong potential to outperform classical neural networks. Quantum neural networks can process real-world data in addition to serving quantum data as the input.
 
-Here, we concentrate on studies of quantum learning for an unidentified unitary transformation. Bisio \etal specifically addressed this task and discovered an optimal method for storing and retrieving an unidentified unitary transformation on quantum memory. Soon after, Sedla \etal proposed an optimal unitary channel protocol that generalizes the results in~\cite{}. In the most recent update, Beer \etal proposed a quantum neural network for learning an unidentified unitary quantum transformation that exhibits remarkable generalization behavior. 
+Here, we concentrate on studies of quantum learning for an unidentified unitary transformation. \cite{PhysRevA.81.032324} specifically addressed this task and discovered an optimal method for storing and retrieving an unidentified unitary transformation on quantum memory. Soon after, \cite{PhysRevLett.122.170502} proposed an optimal unitary channel protocol that generalizes the results in~\cite{PhysRevA.81.032324}. In the most recent update, \cite{beer2020training} proposed a quantum neural network for learning an unidentified unitary quantum transformation that exhibits remarkable generalization behavior. 
 
 Due to the small size of the experiment devices, we are unable to employ the quantum neural network model in this work. However, our work can theoretically be adapted to a quantum neural network by replacing the Variational Quantum Eigensolver circuit with a quantum Feedforward neural network. 
 
 \subsection{Quantum Neural Networks For Sequential Input}
 
-Sequential inputs are common to find in various tasks, for example, DNA sequence and NLP tasks. Recurrent Neural Networks and variants, for instance, Long Short-Term Memory (LSTM) and Gated Recurrent Units (GRU), dominate the tasks about sequential inputs before the Transformer architecture appears. Prior to this work, quantum implementation of recurrent neural networks~\cite{NEURIPS2020_0ec96be3} had been proposed. It is a model that is capable to inference fully on quantum computer. On the contrary, Quantum Long short-term memory~\cite{9747369} was also proposed. However, in the QLSTM, quantum computing is only used to enhance the input data by transforming data via Variational Quantum Eigensolver.
-
-\begin{figure*}[htp!]
-  \centering
-  \fbox{
-    \tikzstyle{layer} = [draw, text centered, text width=14em, minimum height=2em, rounded corners]
-    \tikzstyle{ffblock} = [layer, fill=cyan!30]
-    \tikzstyle{attnblock} = [layer, fill=orange!30]
-    \tikzstyle{measure} = [layer, fill=green!10]
-    \tikzstyle{encode} = [layer, fill=red!20]
-    \tikzstyle{params} = [layer, fill=red!20]
-    \begin{tikzpicture}
-        \node (output) [text centered, text width=14em] {Outputs};
-        \node (measure) [measure] [below of=output] {Pauli-Z Measurement};
-        \node (ffblock) [ffblock] [below of=measure] {Simplified Quantum Feedforward};
-        \node (attn) [attnblock] [below of=ffblock] {Quanttention};
-        \node (encode) [encode] [below of=attn] {Input Encoding};
-        \node (parameters) [params] [below of=encode] {Parameters Layer};
-        \node (input) [text centered, text width=14em] [below of=parameters] {Inputs};
-        
-        \begin{scope}[on background layer]
-            \node [fill=cyan!20, rounded corners, fit={(encode) (attn) (ffblock) (measure) }] {};
-            \node [fill=orange!20, rounded corners, fit={(input) (parameters)}] {};
-            \node [fill=orange!20, rounded corners, fit={(output)}] {};
-            \node [draw, densely dashed, rounded corners, fit={(attn) (ffblock)}, label={right:$\times N$}] {};
-            
-            \draw[->] (input) -- (parameters);
-            \draw[->] (parameters) -- (encode);
-            \draw[->] (encode) -- (attn);
-            \draw[->] (attn) -- (ffblock);
-            \draw[->] (ffblock) -- (measure);
-            \draw[->] (measure) -- (output);
-        \end{scope}
-        
-        \matrix [draw,below left] at ($(output)+(7, 0.5)$) {
-          \node [fill=orange!20, rounded corners, label=right:Classical Computer] {}; \\
-          \node [fill=cyan!20, rounded corners, label=right:Quantum Computer] {}; \\
-        };
-    \end{tikzpicture}
-  }
-  \caption{The QNet Encoder Block Architecture.}
-  \label{fig:qnet-encoder}
-\end{figure*}
+Sequential inputs are common to find in various tasks, for example, DNA sequence and NLP tasks. Recurrent Neural Networks and variants, for instance, Long Short-Term Memory~\cite{hochreiter1997long} and Gated Recurrent Units~\cite{cho2014learning}, dominate the tasks about sequential inputs before the Transformer architecture appears. Prior to this work, quantum implementation of recurrent neural networks~\cite{NEURIPS2020_0ec96be3} had been proposed. It is a model that is capable to inference fully on quantum computer. On the contrary, Quantum Long short-term memory~\cite{9747369} was also proposed. However, in the QLSTM, quantum computing is only used to enhance the input data by transforming data via Variational Quantum Eigensolver.

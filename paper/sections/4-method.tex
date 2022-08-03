@@ -2,19 +2,59 @@
 
 \subsection{Problem Formulation}
 
-The purpose of this paper is to design a learnable quantum circuit on a quantum computer with a similar architecture to the Transformer Encoder, and to explore how much improvement such a model can achieve.
+The purpose of this paper is to design a learnable quantum circuit for quantum computers with a similar architecture to the Transformer Encoder, and to explore how much improvement such a model can achieve.
 Sequence-to-sequence learning is about training models to convert sequences from one domain to sequences in another domain. Using sequence-to-sequence model as backbone can also adapt the model to other tasks, such as text classification and image classification.
 
 The methods of this paper are proposed under the following assumption.
 \begin{itemize}
-  \item There is a concept processing unit called QPU (Quantum Processing Unit), which is a chip-size NISQ device that can be installed on a regular computer and compute any basic quantum rotation gate and entanglement gate in $O(1)$ time complexity.
-  \item There is a limited number of qubits, for example, 32 qubits on the QPU.
+  \item There is a concept processing unit called QPU (Quantum Processing Unit), which is a NISQ device that can is connected to a classical computer. QPU can compute any basic quantum rotation gate and entanglement gate in $O(1)$ time complexity.
+  \item There is a limited number of qubits on the QPU, for example, 32 qubits on the QPU.
   \item The inputs of the model will have the same length or can be chopped and padded into the same length.
 \end{itemize}
 
 The challenge to build a sequence-to-sequence learning model on current NISQ device is that the model has to utilize low number of qubits and shallow circuit. The development of NISQ device has made rapid progress recently; in 2021, IBM released the “Eagle” quantum computer, which has 127 qubits, making it the largest quantum computer at the time. However, it is still difficult to fit a classical sequence-to-sequence machine learning model into the size of a quantum computer. Even if it can, there is no obvious advantage to train the model on a quantum computer. In this work, We aim to propose an NLP model that is optimized for quantum computer and experiment on the NISQ device that is currently available.
 
 \subsection{Architecture}
+
+\begin{figure}[htp!]
+  \centering
+    \tikzstyle{layer} = [draw, text centered, text width=14em, minimum height=2em, rounded corners]
+    \tikzstyle{ffblock} = [layer, fill=cyan!30]
+    \tikzstyle{attnblock} = [layer, fill=orange!30]
+    \tikzstyle{measure} = [layer, fill=green!10]
+    \tikzstyle{encode} = [layer, fill=red!20]
+    \tikzstyle{params} = [layer, fill=red!20]
+    \begin{tikzpicture}
+        \node (output) [text centered, text width=14em] {Outputs};
+        \node (measure) [measure] [below of=output] {Pauli-Z Measurement};
+        \node (ffblock) [ffblock] [below of=measure] {Simplified Quantum Feedforward};
+        \node (attn) [attnblock] [below of=ffblock] {Quanttention};
+        \node (encode) [encode] [below of=attn] {Input Encoding};
+        \node (parameters) [params] [below of=encode] {Parameters Layer};
+        \node (input) [text centered, text width=14em] [below of=parameters] {Inputs};
+        
+        \begin{scope}[on background layer]
+            \node [fill=cyan!20, rounded corners, fit={(encode) (attn) (ffblock) (measure) }] {};
+            \node [fill=orange!20, rounded corners, fit={(input) (parameters)}] {};
+            \node [fill=orange!20, rounded corners, fit={(output)}] {};
+            \node [draw, densely dashed, rounded corners, fit={(attn) (ffblock)}, label={right:$\times N$}] {};
+            
+            \draw[->] (input) -- (parameters);
+            \draw[->] (parameters) -- (encode);
+            \draw[->] (encode) -- (attn);
+            \draw[->] (attn) -- (ffblock);
+            \draw[->] (ffblock) -- (measure);
+            \draw[->] (measure) -- (output);
+        \end{scope}
+        
+        \matrix [draw,above] at ($(output)+(0, 0.8)$) {
+          \node [fill=orange!20, rounded corners, label=right:Classical Computer] {}; \\
+          \node [fill=cyan!20, rounded corners, label=right:Quantum Computer] {}; \\
+        };
+    \end{tikzpicture}
+  \caption{The QNet Encoder Block Architecture.}
+  \label{fig:qnet-encoder}
+\end{figure}
 
 In this section, we will describe the concept of QNet and purpose a residual connected QNet (ResQNet) which use QNet as its main component.
 
@@ -24,7 +64,6 @@ The concept of QNet is simple. However, the actual process of QNet encoder is mo
 
 \begin{figure}[htp!]
   \centering
-  \fbox{
     \tikzstyle{layer} = [draw, text centered, text width=14em, minimum height=2em, rounded corners]
     \tikzstyle{denseblock} = [layer, fill=violet!10]
     \tikzstyle{outputblock} = [layer, fill=blue!10]
@@ -49,7 +88,6 @@ The concept of QNet is simple. However, the actual process of QNet encoder is mo
         \end{scope}
         
     \end{tikzpicture}
-  }
   \caption{The ResQNet - the model architecture.}
   \label{fig:resqnet}
 \end{figure}
@@ -71,23 +109,19 @@ x \rightarrow |\psi_x\rangle = ( \prod_{i=1}^n \prod_{j=1}^d R_x( \frac{(i-1) \p
 
 \begin{figure}[htp!]
     \centering
-    \fbox{
-        \includegraphics[width=7cm]{images/word-sphere.png}
-    }
+    \includegraphics[width=7cm]{images/word-sphere.png}
     \caption{The Bloch sphere illustration of Word Embedding Quantum Encoding on a single qubit.}
     \label{fig:word-sphere}
 \end{figure}
 
 \begin{figure}[htp!]
   \centering
-  \fbox{
     \Qcircuit @C=2em @R=.7em {
     & |0 \rangle & & \gate{R_x(0)} & \gate{R_z(x^1_1)} & \qw & |\psi_1 \rangle & \\
     & |0 \rangle & & \gate{R_x(0)} & \gate{R_z(x^2_1)} & \qw & |\psi_1 \rangle & \\
     & |0 \rangle & & \gate{R_x(\frac{\pi}{2})} & \gate{R_z(x^1_2)} & \qw & |\psi_2 \rangle & \\
     & |0 \rangle & & \gate{R_x(\frac{\pi}{2})} & \gate{R_z(x^2_2)} & \qw & |\psi_2 \rangle & \\
     }
-  }
   \caption{The quantum circuit of Word Embedding Quantum Encoding for 2 words with 2 embedding.}
   \label{fig:embedding}
 \end{figure}
@@ -101,13 +135,11 @@ Since qubits are precious in the current stage NISQ, we do not want to use auxil
 
 \begin{figure}[htp!]
   \centering
-  \fbox{
     \Qcircuit @C=2em @R=.7em {
     & |\psi_1 \rangle & & \gate{VQE(\theta_1)} & \qswap & \qw & \qw \\
     & |\psi_2 \rangle & & \gate{VQE(\theta_2)} & \qswap & \qw & \qw\\
     & |0\rangle & & \gate{H} & \ctrl{-2} & \gate{H} & \qw \\
     }
-  }
   \caption{The quantum circuit of Dot-Product with 2 quantum encoded word embedding.}
   \label{fig:dot-product}
 \end{figure}
@@ -141,14 +173,12 @@ Therefore, Quanttention is made up of Quantum Fourier Transforms performed on al
 
 \begin{figure}[htp!]
   \centering
-  \fbox{
     \Qcircuit @C=2em @R=.7em {
     & |\psi^1_1 \rangle & & \qw & \multigate{1}{\ \mathcal{QFT}\ } & \qw & \qw \\
     & |\psi^2_1 \rangle & & \qswap & \ghost{\ \mathcal{QFT}\ } & \qswap & \qw \\
     & |\psi^1_2 \rangle & & \qswap \qwx & \multigate{1}{\ \mathcal{QFT}\ } & \qswap \qwx & \qw\\
     & |\psi^2_2 \rangle & & \qw & \ghost{\ \mathcal{QFT}\ } & \qw & \qw
     }
-  }
   \caption{Quanttention circuit.}
   \label{fig:quanttention}
 \end{figure}
@@ -162,12 +192,10 @@ Since the goal of this work is to construct a viable machine learning model, the
 
 \begin{figure}[htp!]
   \centering
-  \fbox{
     \Qcircuit @C=2em @R=.7em {
     & |\psi^1_1 \rangle & & \multigate{1}{VQE(\theta_1)} & \multigate{1}{\ \mathcal{G}\ }& \multigate{1}{VQE(\theta_2)} & \qw \\
     & |\psi^2_1 \rangle & & \ghost{VQE(\theta_1)}& \ghost{\ \mathcal{G}\ } & \ghost{VQE(\theta_2)} & \qw \\
     }
-  }
   \caption{Simplified Quantum FeedForward with single vocab and 2 wires.}
   \label{fig:feedforward}
 \end{figure}
@@ -191,14 +219,12 @@ The circuit of $\mathbf{G}$ is shown in Fig.~\ref{fig:g-operator}.
 
 \begin{figure}[htp!]
   \centering
-  \fbox{
     \Qcircuit @C=2em @R=.7em {
     & |\psi^1_1 \rangle & & \gate{H} & \ctrl{1} & \gate{H} & \qw \\
     & |\psi^2_1 \rangle & & \gate{H} & \ctrl{1} & \gate{H} & \qw \\
     & |\psi^3_1 \rangle & & \gate{H} & \targ & \gate{H} & \qw \\
     }
-  }
-  \caption{Circuit of \mathbf{G}}
+  \caption{Circuit of $\mathbf{G}$}
   \label{fig:g-operator}
 \end{figure}
 

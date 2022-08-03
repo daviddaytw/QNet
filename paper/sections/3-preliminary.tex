@@ -32,14 +32,12 @@ The VQE approach has been shown to be flexible in circuit depth and the presence
 
 \begin{figure}[htp]
   \centering
-  \fbox{
     \Qcircuit @C=2em @R=.7em {
     & \gate{R(\alpha^1_1, \beta^1_1, \gamma^1_1)} & \ctrl{1} & \qw & \qw & \targ & \qw \\
     & \gate{R(\alpha^1_2, \beta^1_2, \gamma^1_2)} & \targ & \ctrl{1} & \qw & \qw & \qw \\
     & \gate{R(\alpha^1_3, \beta^1_3, \gamma^1_3)} & \qw & \targ & \ctrl{1} & \qw & \qw\\
     & \gate{R(\alpha^1_4, \beta^1_4, \gamma^1_4)} & \qw & \qw & \targ & \ctrl{-3} & \qw
     }
-  }
   \caption{Single-Layer VQE with 4 quantum wires.}
   \label{fig:vqe}
 \end{figure}

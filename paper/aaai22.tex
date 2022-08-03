@@ -24,6 +24,7 @@
 \usepackage{tikz}
 \usetikzlibrary {backgrounds, fit, calc} 
 \usepackage{qcircuit}
+\usepackage{array}
 
 %
 % These are are recommended to typeset listings but not required. See the subsubsection on listing. Remove this block if you don't have listings in your paper.
@@ -93,7 +94,7 @@
 % \vspace{- -- No negative value may be used in proximity of a caption, figure, table, section, subsection, subsubsection, or reference
 % \vskip{- -- No negative value may be used to alter spacing above or below a caption, figure, table, section, subsection, subsubsection, or reference
 
-\setcounter{secnumdepth}{0} %May be changed to 1 or 2 if section numbers are desired.
+\setcounter{secnumdepth}{1} %May be changed to 1 or 2 if section numbers are desired.
 
 % The file aaai22.sty is the style file for AAAI Press
 % proceedings, working notes, and technical reports.
@@ -108,13 +109,13 @@
 % directly follow a colon or long dash
 \title{QNet: A Quantum-native Transformer Encoder Architecture}
 \author{
-    David Wei Day,\textsuperscript{\rm 1}
-    Hao-Sheng Chen, \textsuperscript{\rm 2}
-    Ming-Te Sun, \textsuperscript{\rm 3}
+    Wei Day,
+    Hao-Sheng Chen,
+    Ming-Te Sun
 }
 \affiliations{
     %Afiliations
-    \textsuperscript{\rm 1\rm 2\rm 3}Department of Computer Science Department & Information Engineering, National Central University\\
+    Department of Computer Science \& Information Engineering, National Central University\\
 
     2275 No. 300, Zhongda Rd.\\
     Taoyuan, Taiwan \\
@@ -122,9 +123,6 @@
     academic@davidday.tw\textsuperscript{\rm 1}
     msun@csie.ncu.edu.tw\textsuperscript{\rm 3}
 }
-
-\usepackage[backend=bibtex,]{biblatex}
-\addbibresource{references.bib}
 
 \begin{document}
 
@@ -136,15 +134,22 @@ AAAI creates proceedings, working notes, and technical reports directly from ele
 
 \noindent 
 \input{sections/1-introduction}
+\label{section:intro}
 \input{sections/2-related_work}
+\label{section:related}
 \input{sections/3-preliminary}
+\label{section:preliminary}
 \input{sections/4-method}
+\label{section:method}
 \input{sections/5-analysis}
+\label{section:analysis}
 \input{sections/6-experiments}
+\label{section:experiment}
 \input{sections/7-conclusion}
+\label{section:conclusion}
 
 \appendix
-\printbibliography
+\bibliography{references}
 
 \section{Acknowledgments}
 AAAI is especially grateful to Peter Patel Schneider for his work in implementing the original aaai.sty file, liberally using the ideas of other style hackers, including Barbara Beeton. We also acknowledge with thanks the work of George Ferguson for his guide to using the style and BibTeX files --- which has been incorporated into this document --- and Hans Guesgen, who provided several timely modifications, as well as the many others who have, from time to time, sent in suggestions on improvements to the AAAI style. We are especially grateful to Francisco Cruz, Marc Pujol-Gonzalez, and Mico Loretan for the improvements to the Bib\TeX{} and \LaTeX{} files made in 2020.
