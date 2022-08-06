@@ -16,6 +16,8 @@ def save_log(history, val_metric: str=None):
         'history': history,
     }
 
+    logs['config'] = str(logs['config']['model_path'].absolute())
+
     if val_metric != None:
         logs['best_acc'] = max(history[val_metric])
         print('Best score: ', logs['best_acc'])

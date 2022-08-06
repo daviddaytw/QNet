@@ -35,9 +35,8 @@ def pretrain(args, vectorize_layer):
 
     all_data = tfds.load('T2TDataset', split='train')\
                       .shuffle(1000)\
-                      .batch(args.batch_size)\
-                      .map(random_masked)\
-                      .take(50)
+                      .batch(args.batch_size, drop_remainder=True)\
+                      .map(random_masked)
 
     model = tf.keras.models.Sequential([
         tf.keras.Input(shape=(args.seq_len,), dtype=tf.int64),
@@ -47,11 +46,14 @@ def pretrain(args, vectorize_layer):
 
     lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * len(all_data), alpha=1e-2)
     opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-09)
-    model.compile(opt, loss='sparse_categorical_crossentropy')
+    model.compile(opt, loss='sparse_categorical_crossentropy', loss='sparse_categorical_crossentropy')
 
     if args.model_path.with_suffix(".ckpt.index").exists():
+        print('Load pretrained weight: {}'.format(args.model_path.with_suffix(".ckpt")))
         model.load_weights(args.model_path.with_suffix(".ckpt"))
     else:
+        print(model.summary())
+        print('Training pretrain Mask LM')
         model.fit(
             all_data,
             batch_size=args.batch_size,
@@ -109,6 +111,7 @@ def train(args, dataset: DatasetWrapper):
                 train_data,
                 batch_size=args.batch_size,
                 epochs=args.epochs,
+                validation_data=test_data,
                 validation_data=test_data,
                 verbose=1
             )
