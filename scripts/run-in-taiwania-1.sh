@@ -2,7 +2,7 @@
 
 REPO_FOLDER=$(dirname $(dirname $(readlink -f $0)))
 JOB_NAME=QNet
-NOTIFICATION_EMAIL=test@test.com
+NOTIFICATION_EMAIL=
 
 CONDA_ENV_NAME=QNetPy8
 CONDA_ENV_PATH=~/QNetPy8

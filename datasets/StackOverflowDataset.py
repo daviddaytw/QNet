@@ -7,8 +7,6 @@ import pandas as pd
 import tensorflow as tf
 import tensorflow_datasets.public_api as tfds
 
-MAX_LEN=7
-
 _CITATION = """\
 @inproceedings{xu-etal-2015-short,
     title = "Short Text Clustering via Convolutional Neural Networks",

@@ -10,30 +10,21 @@ from tqdm import tqdm
 random.seed(42)
 
 _CITATION = """
+Miga KH, Koren S, Rhie A, Vollger MR, Gershman A, Bzikadze A, Brooks S, Howe E, Porubsky D, Logsdon GA, Schneider VA,
+Potapova T, Wood J, Chow W, Armstrong J, Fredrickson J, Pak E, Tigyi K, Kremitzki M, Markovic C, Maduro V, Dutra A,
+Bouffard GG, Chang AM, Hansen NF, Wilfert AB, Thibaud-Nissen F, Schmitt AD, Belton JM, Selvaraj S, Dennis MY, Soto
+DC, Sahasrabudhe R, Kaya G, Quick J, Loman NJ, Holmes N, Loose M, Surti U, Risques RA, Graves Lindsay TA, Fulton R,
+Hall I, Paten B, Howe K, Timp W, Young A, Mullikin JC, Pevzner PA, Gerton JL, Sullivan BA, Eichler EE, Phillippy AM.
+Telomere-to-telomere assembly of a complete human X chromosome. Nature. 2020 Sep;585(7823):79-84. doi: 10.1038/
+s41586-020-2547-7. Epub 2020 Jul 14. PMID: 32663838; PMCID: PMC7484160.
 """
 _HOMEPAGE = "https://www.ncbi.nlm.nih.gov/assembly/GCA_009914755.4/"
 _URL = 'https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz'
 
-def _generate_documents(chr_sequence, sentences_bounds=(50, 100), lenghts_bounds=(500, 1000)):
-        """
-        From a single chromosome yield a set of documents that cover that chromosome.
-        This operation is done ten-fold.
-        """
-        C = len(chr_sequence)  # chromosome length
-
-        for _ in range(10):
-            q = random.randint(0, 5000)  # random start position from the 5' end
-            while q < C:
-                s = random.randint(*sentences_bounds)  # number of sentences per document
-                d = []
-                for _ in range(s):
-                    l = random.randint(*lenghts_bounds)  # length of each sentence
-                    d.append(str(chr_sequence[q : q + l]).upper())
-                    q += l  # update position for the new sentence
-                yield d
+MAX_LEN = 16
 
 class T2TDataset(tfds.core.GeneratorBasedBuilder):
-  VERSION = tfds.core.Version('0.1.1')
+  VERSION = tfds.core.Version('0.1.2')
 
   def _info(self):
     return tfds.core.DatasetInfo(
@@ -58,15 +49,12 @@ class T2TDataset(tfds.core.GeneratorBasedBuilder):
         ),
     ]
 
+  # 24 * 100000 texts
   def _generate_examples(self, path):
     i = 0
-    for record in tqdm(SeqIO.parse(path, "fasta")):
-        if "mitochondrion" not in record.description:
-            for document in tqdm(_generate_documents(record.seq), desc=record.description):
-                yield i, {'text': "\n".join(document) + "\n"}
-                i += 1
-
-    print(i)
-
-for i in tfds.load('T2TDataset'):
-    print(i)
+    for record in SeqIO.parse(path, "fasta"):
+        q = random.randint(0, 5000)
+        for _ in range(100000):
+            yield i, {'text': str(record.seq[q : q + MAX_LEN])}
+            q += MAX_LEN
+            i += 1

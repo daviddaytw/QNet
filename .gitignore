@@ -136,3 +136,6 @@ tensorflow_datasets
 
 # IDE
 .vscode
+
+# model weights
+saved
