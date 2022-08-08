@@ -16,8 +16,6 @@ def save_log(history, val_metric: str=None):
         'history': history,
     }
 
-    logs['config'] = str(logs['config']['model_path'].absolute())
-
     if val_metric != None:
         logs['best_acc'] = max(history[val_metric])
         print('Best score: ', logs['best_acc'])
@@ -47,8 +45,6 @@ def main(args):
             save_log(fitting.history, 'val_categorical_accuracy')
         else:
             save_log(fitting.history, 'val_binary_accuracy')
-    if dataset.getTask() == 'mlm':
-        save_log(fitting.history)
 
 if __name__ == '__main__':
     main(args)

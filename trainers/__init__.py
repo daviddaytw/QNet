@@ -1,8 +1,7 @@
-from . import ClassificationTrainer, MLMTrainer, RegressionTrainer, NERTrainer
+from . import ClassificationTrainer, RegressionTrainer, NERTrainer
 
 trainer = {
     'classification': ClassificationTrainer,
-    'mlm': MLMTrainer,
     'regression': RegressionTrainer,
     'ner': NERTrainer,
 }
