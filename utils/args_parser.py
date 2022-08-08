@@ -9,7 +9,7 @@ def parse_args(args=None):
     parser.add_argument('--model', '-m', default='qnet', type=str,
                         help='Select the trainig model (transformer, qnet, fnet)')
     parser.add_argument('--model_path', '-mp', default=None, type=Path,
-                        help='Set the pretrained model path')
+                        help='Set the pretrained model path (for mlm pretrain task)')
     parser.add_argument('--seq_len', '-ml', default='8', type=int,
                         help='Input length for the model.')
     parser.add_argument('--embed_size', '-ed', default='2', type=int,

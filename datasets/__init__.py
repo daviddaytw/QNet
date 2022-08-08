@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from . import ColBERTDataset, StackOverflowDataset, T2TDataset, RentTheRunwayDataset, ClickbaitDataset, H38Dataset
+from . import ColBERTDataset, StackOverflowDataset, T2TDataset, RentTheRunwayDataset, ClickbaitDataset, H38Dataset, MSRADataset
 
 class DatasetWrapper():
     def __init__(self, name: str, task: str, output_size: int=None):
@@ -40,11 +40,20 @@ class DatasetWrapper():
             test_data = ds.skip(int(len(ds) * train_ratio))\
                         .batch(batch_size)
         if self.task == 'mlm':
+            ds = ds.batch(batch_size, drop_remainder=True)
+
             train_data = ds.take(int(len(ds) * train_ratio))\
-                        .shuffle(1000)\
-                        .batch(batch_size)
-            test_data = ds.skip(int(len(ds) * train_ratio))\
-                        .batch(batch_size)
+                        .shuffle(1000)
+            test_data = ds.skip(int(len(ds) * train_ratio))
+        if self.task == 'ner':
+            if self.output_size > 2:
+                ds = ds.map(lambda x, y: (x, tf.one_hot(y, self.output_size)))
+
+            ds = ds.batch(batch_size, drop_remainder=True)
+
+            train_data = ds.take(int(len(ds) * train_ratio))\
+                        .shuffle(1000)
+            test_data = ds.skip(int(len(ds) * train_ratio))
 
         train_data = train_data.with_options(self.options)
         if test_data is not None:
@@ -58,6 +67,7 @@ dataset = {
     'colbert': DatasetWrapper('ColBERTDataset', 'classification', 2),
     'clickbait': DatasetWrapper('ClickbaitDataset', 'classification', 2),
     'h38': DatasetWrapper('H38Dataset', 'mlm', 2),
+    'msra': DatasetWrapper('MSRADataset', 'ner', 7),
     'stackoverflow': DatasetWrapper('StackOverflowDataset', 'classification', 20),
     'agnews': DatasetWrapper('ag_news_subset', 'classification', 4),
     'rentrunway': DatasetWrapper('RentTheRunwayDataset', 'regression'),
