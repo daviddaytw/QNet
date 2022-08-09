@@ -1,5 +1,4 @@
 import tensorflow as tf
-import tensorflow_addons as tfa
 from tensorflow.keras import layers
 from datasets import DatasetWrapper, MSRADataset
 from models import get_model
@@ -65,8 +64,8 @@ def train(args, dataset: DatasetWrapper):
     opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-09)
     model.compile(
         opt,
-        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, reduction=tf.keras.losses.Reduction.NONE),
-        metrics=['accuracy', tfa.metrics.F1Score(num_classes=dataset.getOutputSize(), average="micro")]
+        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+        metrics=['accuracy'],
     )
 
     print(model.summary())
