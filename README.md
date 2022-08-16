@@ -1,5 +1,7 @@
 # QNet
 
+This is the offical implementation of the paper "QNet: A Quantum-native Transformer Encoder Architecture".
+
 ## Training model
 
 To train a new model, run the trainer with customized configuration.
