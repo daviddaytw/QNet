@@ -13,7 +13,7 @@ NCUPS_PER_NODE=40
 
 LOG_FILE=~/run.$(date +%s).log
 
-PROJECT_ID=MST111033
+PROJECT_ID=MST111245
 
 ARGS=()
 while [[ $# -gt 0 ]]; do
