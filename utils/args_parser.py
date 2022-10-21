@@ -1,12 +1,12 @@
 import argparse, os, json
-import datasets
+import datasets, models
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser(description='Configure training arugments.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dataset', '-d', default='stackoverflow', type=str,
                         help='Select the training or evaluation dataset (' + ','.join(datasets.list_dataset()) + ').')
     parser.add_argument('--model', '-m', default='qnet', type=str,
-                        help='Select the trainig model (transformer, qnet, fnet)')
+                        help='Select the trainig model (' + ','.join(models.list_model()) + ')')
     parser.add_argument('--seq_len', '-ml', default='8', type=int,
                         help='Input length for the model.')
     parser.add_argument('--embed_size', '-ed', default='2', type=int,
