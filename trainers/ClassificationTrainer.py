@@ -27,7 +27,13 @@ def train(args, dataset: DatasetWrapper):
     ])
 
     mss_l = MaxStepStoppingWithLogging(max_steps=-1) # just logging
-    lr_finder = LRFinder(train_data, args.batch_size, window_size=args.lr_finder[0], max_steps=args.lr_finder[1], filename=args.lr_finder[2])
+    lr_finder = LRFinder(
+                    train_data,
+                    args.batch_size,
+                    window_size=int(args.lr_finder[0]),
+                    max_steps=int(args.lr_finder[1]),
+                    filename=args.lr_finder[2]
+                )
     callbacks = [mss_l]
     if args.lr <= 0:
         callbacks.append(lr_finder)
@@ -58,7 +64,7 @@ def train(args, dataset: DatasetWrapper):
                 callbacks=callbacks
             )
 
-    fitting.history.batch = mss_l.history
-    fitting.history.lr_finder_batch = lr_finder.history
+    fitting.history['batch'] = mss_l.history
+    fitting.history['lr_finder_batch'] = lr_finder.history
 
     return fitting

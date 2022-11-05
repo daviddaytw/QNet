@@ -14,13 +14,14 @@ def parse_args(args=None):
     parser.add_argument('--num_blocks', '-nb', default='1', type=int,
                         help='Number of mini-blocks in the model.')
     parser.add_argument('--qnet_depth', default=1, type=int,
-                        help='Number of QNet blocks on the quantum computer, only appliable for QNet.')
+                        help='Number of QNet blocks on the quantum computer, only applicable for QNet.')
     parser.add_argument('--batch_size', '-bs', default='128', type=int,
                         help='Number of samples per batch a node.')
     parser.add_argument('--lr', '-lr', default='0', type=float,
                         help='The initial learning rate to cosine decay, 0 means use lr_finder')
-    parser.add_argument('--lr_finder', default='4,400,./logs/lr_finder', nargs=3, metavar=('window_size,max_steps,verbose_filename', ':', 'int,int,str'),
-                        help='LRFinder finding initial learning rate automatically, only appliable for --lr 0')
+    parser.add_argument('--lr_finder', default=['4', '400', './logs/lr_finder'], nargs=3,
+                        metavar=('window_size max_steps verbose_filename', ':', 'int int str'),
+                        help='LRFinder finding initial learning rate automatically, only applicable for --lr 0')
     parser.add_argument('--epochs','-e', default='5', type=int,
                         help='Number of training loops over all training data')
     parser.add_argument('--distributed_nodes','-dn', nargs='+', type=str,

@@ -45,6 +45,8 @@ def main(args):
             save_log(fitting.history, 'val_categorical_accuracy')
         else:
             save_log(fitting.history, 'val_binary_accuracy')
+    else:
+        save_log(fitting.history)
 
 if __name__ == '__main__':
     main(args)

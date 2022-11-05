@@ -3,6 +3,7 @@ from tensorflow.keras import layers
 from datasets import DatasetWrapper, MSRADataset
 from models import get_model
 from utils.conlleval import evaluate
+from utils.lr_finder import LRFinder, MaxStepStoppingWithLogging
 
 def calculate_metrics(model, dataset):
     all_true_tag_ids, all_predicted_tag_ids = [], []
@@ -60,6 +61,18 @@ def train(args, dataset: DatasetWrapper):
         tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(dataset.getOutputSize())),
     ])
 
+    mss_l = MaxStepStoppingWithLogging(max_steps=-1) # just logging
+    lr_finder = LRFinder(
+                    train_data,
+                    args.batch_size,
+                    window_size=int(args.lr_finder[0]),
+                    max_steps=int(args.lr_finder[1]),
+                    filename=args.lr_finder[2]
+                )
+    callbacks = [mss_l]
+    if args.lr <= 0:
+        callbacks.append(lr_finder)
+
     lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * train_data_size, alpha=1e-2)
     opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-09)
     model.compile(
@@ -75,8 +88,12 @@ def train(args, dataset: DatasetWrapper):
                 batch_size=args.batch_size,
                 epochs=args.epochs,
                 validation_data=test_data,
-                verbose=1
+                verbose=1,
+                callbacks=callbacks
             )
+
+    fitting.history['batch'] = mss_l.history
+    fitting.history['lr_finder_batch'] = lr_finder.history
 
     calculate_metrics(model, test_data)
     return fitting
