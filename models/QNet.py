@@ -79,7 +79,7 @@ class ParametersLayer(layers.Layer):
     def __init__(self, embed_dim, depth):
         super(ParametersLayer, self).__init__()
         self.parameters = tf.Variable(
-            np.random.uniform(0, 2 * np.pi, (1, 2 * depth * 3 * embed_dim)),
+            tf.random.uniform((1, 2 * depth * 3 * embed_dim), maxval= 2 * np.pi),
             name="Q_param",
             dtype=tf.float32,
         )
@@ -100,12 +100,14 @@ class QNet(layers.Layer):
         qubits, model_circuit = generate_model(embed_dim, seq_len, depth)
         observables = [ cirq.Z(bit) for bit in qubits ]
         self.backbone = tfq.layers.ControlledPQC(model_circuit, operators=observables)
+        self.norm = layers.LayerNormalization(epsilon=1e-6)
     
     def call(self, inputs):
         empty_circuit = tf.tile(tfq.convert_to_tensor([cirq.Circuit()]), tf.stack([tf.shape(inputs)[0]]))
         y = self.backbone([empty_circuit, inputs])
 
-        return tf.reshape(y, [-1, self.seq_len, self.embed_dim])
+        y = tf.reshape(y, [-1, self.seq_len, self.embed_dim])
+        return self.norm(y)
 
 class QNetEncoder(layers.Layer):
     def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, num_blocks: int, depth: int):
