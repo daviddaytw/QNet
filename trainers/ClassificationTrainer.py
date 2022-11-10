@@ -39,7 +39,7 @@ def train(args, dataset: DatasetWrapper):
         callbacks.append(lr_finder)
 
     lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * len(train_data), alpha=1e-2)
-    opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-09)
+    opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn)
 
     if dataset.getOutputSize() > 2:
         model.compile(
@@ -65,6 +65,5 @@ def train(args, dataset: DatasetWrapper):
             )
 
     fitting.history['batch'] = mss_l.history
-    fitting.history['lr_finder_batch'] = lr_finder.history
 
     return fitting
