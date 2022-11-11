@@ -1,5 +1,6 @@
 # since we encounter this [problem](https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/distribute/multi_worker_with_keras.ipynb?hl=id-IDCache#scrollTo=Mhq3fzyR5hTw)
 # it must put on the file starts before initialize other class and after set env.
+from models import count_params
 from utils.args_parser import solve_args
 args = solve_args(multi_worker_strategy=True)
 
@@ -37,6 +38,7 @@ def save_log(history, val_metric: str='val_loss'):
         'Embed size':args.embed_size,
         'Num block': args.num_blocks,
         'Best Score': logs['best_acc'],
+        'Params': count_params(args),
         'args': json.dumps(vars(args))
     }
 
@@ -65,13 +67,14 @@ def main(args):
     trainer = get_trainer(dataset.getTask())
     fitting = trainer.train(args, dataset)
 
-    if dataset.getTask() == 'classification':
-        if dataset.getOutputSize() > 2:
-            save_log(fitting.history, 'val_categorical_accuracy')
+    if args.distributed_node_index == 0 or args.distributed_node_index == None:
+        if dataset.getTask() == 'classification':
+            if dataset.getOutputSize() > 2:
+                save_log(fitting.history, 'val_categorical_accuracy')
+            else:
+                save_log(fitting.history, 'val_binary_accuracy')
         else:
-            save_log(fitting.history, 'val_binary_accuracy')
-    else:
-        save_log(fitting.history)
+            save_log(fitting.history)
 
 if __name__ == '__main__':
     main(args)

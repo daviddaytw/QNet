@@ -11,19 +11,14 @@ mapping = {
     'fnet': FNet,
 }
 
-def get_model(args, vocab_size: int):
-    model = mapping[args.model]
-    if args.model == 'qnet':
-        instance = model(vocab_size, args.seq_len, args.embed_size, args.num_blocks, args.qnet_depth)
-    else:
-        instance = model(vocab_size, args.seq_len, args.embed_size, args.num_blocks)
+def count_params(args):
+    model = get_model(args, 10) # 10 is a vocab size
 
     # Build model with one inference
-    instance(tf.ones((1, args.seq_len), dtype=tf.int64))
+    model(tf.ones((1, args.seq_len), dtype=tf.int64))
 
-    # Count parameters
     total_parameters = 0
-    for variable in instance.variables:
+    for variable in model.variables:
         if 'embedding' in variable.name:
             continue
         # shape is an array of tf.Dimension
@@ -32,9 +27,14 @@ def get_model(args, vocab_size: int):
         for dim in shape:
             variable_parameters *= dim
         total_parameters += variable_parameters
-    print('Number of Parameters w/o embedding layer:', total_parameters)
+    return total_parameters
 
-    return instance
+def get_model(args, vocab_size: int):
+    model = mapping[args.model]
+    if args.model == 'qnet':
+        return model(vocab_size, args.seq_len, args.embed_size, args.num_blocks, args.qnet_depth)
+    else:
+        return model(vocab_size, args.seq_len, args.embed_size, args.num_blocks)
 
 def list_model():
     return mapping.keys()
