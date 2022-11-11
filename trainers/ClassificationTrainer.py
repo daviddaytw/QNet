@@ -27,7 +27,7 @@ def train(args, dataset: DatasetWrapper):
     ])
 
     lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * len(train_data), alpha=1e-2)
-    opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn)
+    opt = tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-07)
 
     if dataset.getOutputSize() > 2:
         trainer = Trainer(args, model,

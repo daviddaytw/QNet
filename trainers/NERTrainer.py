@@ -66,7 +66,7 @@ def train(args, dataset: DatasetWrapper):
     trainer = Trainer(
         args,
         model,
-        optimizer=tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-07),
         loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
         metrics=['accuracy']
     )
