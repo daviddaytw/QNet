@@ -7,6 +7,13 @@ class Trainer():
         self.model = model
         self.model.compile(**kwargs)
 
+        self.early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor=( 'val_' + kwargs['metrics'][0] if 'metrics' in kwargs else 'val_loss'),
+            patience=2,
+            verbose=1,
+            restore_best_weights=True
+        )
+
     def train(self, train_data, test_data):
         args = self.args
         model = self.model
@@ -22,13 +29,7 @@ class Trainer():
 
         callbacks = [
             mss_l,
-            tf.keras.callbacks.EarlyStopping(
-                monitor='val_loss',
-                min_delta=1e-4,
-                patience=2,
-                verbose=1,
-                restore_best_weights=True
-            )
+            self.early_stopping,
         ]
 
         if args.lr <= 0:
