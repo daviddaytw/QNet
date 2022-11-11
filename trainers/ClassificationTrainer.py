@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from datasets import DatasetWrapper
 from models import get_model
-from .Trainer import Trainer
+from trainers.Trainer import Trainer
 
 def train(args, dataset: DatasetWrapper):
     vectorize_layer = layers.TextVectorization(

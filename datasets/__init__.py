@@ -22,9 +22,8 @@ class DatasetWrapper():
 
     def getData(self, batch_size: int, train_ratio: int=0.83):
         print('Num Replicas In Sync: ', self.strategy.num_replicas_in_sync)
-
-        ds = tfds.load(self.name, split='train', as_supervised=True)
         if self.task == 'classification':
+            ds = tfds.load(self.name, split='train', as_supervised=True)
             if self.output_size > 2:
                 ds = ds.map(lambda x, y: (x, tf.one_hot(tf.cast(y, tf.int32), self.output_size)))
 
@@ -34,12 +33,15 @@ class DatasetWrapper():
             test_data = ds.skip(int(len(ds) * train_ratio))\
                         .batch(batch_size)
         if self.task == 'regression':
+            ds = tfds.load(self.name, split='train', as_supervised=True)
             train_data = ds.take(int(len(ds) * train_ratio))\
                         .shuffle(1000)\
                         .batch(batch_size)
             test_data = ds.skip(int(len(ds) * train_ratio))\
                         .batch(batch_size)
         if self.task == 'ner':
+            ds, ds_info = tfds.load(self.name, split='train', as_supervised=True, with_info=True)
+
             if self.output_size > 2:
                 ds = ds.map(lambda x, y: (x, tf.one_hot(y, self.output_size)))
 
@@ -48,6 +50,8 @@ class DatasetWrapper():
             train_data = ds.take(int(len(ds) * train_ratio))\
                         .shuffle(1000)
             test_data = ds.skip(int(len(ds) * train_ratio))
+
+            return train_data, test_data, ds_info
 
         train_data = train_data.with_options(self.options)
         test_data = test_data.with_options(self.options)

@@ -34,7 +34,7 @@ ID_TO_LABEL= dict(zip(LABEL.values(), LABEL.keys()))
 MAX_LEN = 8
 
 class MSRADataset(tfds.core.GeneratorBasedBuilder):
-  VERSION = tfds.core.Version('0.1.1')
+  VERSION = tfds.core.Version('0.1.2')
 
   def _info(self):
     return tfds.core.DatasetInfo(
@@ -44,6 +44,7 @@ class MSRADataset(tfds.core.GeneratorBasedBuilder):
             "text": tfds.features.Tensor(shape=(MAX_LEN,), dtype=tf.string),
             "label": tfds.features.Tensor(shape=(MAX_LEN,), dtype=tf.int64),
         }),
+        metadata=tfds.core.MetadataDict({ 'id_to_label': ID_TO_LABEL }),
         supervised_keys=('text', 'label'),
         homepage=_HOMEPAGE,
         citation=_CITATION,

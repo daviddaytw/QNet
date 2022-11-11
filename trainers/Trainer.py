@@ -2,19 +2,25 @@ import tensorflow as tf
 from utils.lr_finder import LRFinder, MaxStepStoppingWithLogging
 
 class Trainer():
-    def __init__(self, args, model, **kwargs):
+    def __init__(self, args, model, monitor=None, **kwargs):
         self.args = args
         self.model = model
         self.model.compile(**kwargs)
 
+        if monitor is None:
+            if 'metrics' in kwargs:
+                monitor = 'val_' + str(kwargs['metrics'][0])
+            else:
+                monitor = 'val_loss'
+
         self.early_stopping = tf.keras.callbacks.EarlyStopping(
-            monitor=( 'val_' + kwargs['metrics'][0] if 'metrics' in kwargs else 'val_loss'),
+            monitor=monitor,
             patience=2,
             verbose=1,
             restore_best_weights=True
         )
 
-    def train(self, train_data, test_data):
+    def train(self, train_data, test_data, callbacks=[]):
         args = self.args
         model = self.model
 
@@ -27,13 +33,14 @@ class Trainer():
                         filename=args.lr_finder[2]
                     )
 
-        callbacks = [
+        model_callbacks = [
             mss_l,
             self.early_stopping,
+            *callbacks,
         ]
 
         if args.lr <= 0:
-            callbacks.append(lr_finder)
+            model_callbacks.append(lr_finder)
 
         print(model.summary())
         fitting = self.model.fit(
@@ -42,9 +49,11 @@ class Trainer():
                     epochs=args.epochs,
                     validation_data=test_data,
                     verbose=1,
-                    callbacks=callbacks
+                    callbacks=model_callbacks
                 )
 
-        fitting.history['batch'] = mss_l.history
+        for cb in model_callbacks:
+            if hasattr(cb, 'history'):
+                fitting.history[type(cb).__name__] = cb.history
+
         return fitting
-    

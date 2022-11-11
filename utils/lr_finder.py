@@ -15,7 +15,7 @@ class MaxStepStoppingWithLogging(tf.keras.callbacks.Callback):
 
         self.tqdm = None
         if self.max_steps > 0 and self.tqdm_prefix is not None:
-            self.tqdm = tqdm(desc=f'{self.tqdm_prefix}: logging loss', total=self.max_steps, miniters=1)
+            self.tqdm = tqdm(desc=f'{self.tqdm_prefix}: logging loss', total=self.max_steps, miniters=1, position=0, leave=True)
 
     def on_train_begin(self, logs={}):
         if not hasattr(self.model.optimizer, "lr") or not hasattr(self.model.optimizer.lr, "__call__"):
@@ -24,7 +24,7 @@ class MaxStepStoppingWithLogging(tf.keras.callbacks.Callback):
         tf.get_logger().setLevel('ERROR')
 
     def on_epoch_end(self, epoch, logs={}):
-        self.history['val_losses'].append(logs.get('loss'))
+        self.history['val_losses'] += np.repeat(logs.get('loss'), len(self.history['losses']) // (epoch + 1)).tolist()
 
     def on_batch_end(self, batch, logs={}):
         self.history['lr'].append(float(self.model.optimizer.lr(len(self.history['training_steps']))))
@@ -41,9 +41,7 @@ class MaxStepStoppingWithLogging(tf.keras.callbacks.Callback):
         tf.get_logger().setLevel('INFO')
 
         self.model.stop_training = False
-        self.history['val_losses'] = np.repeat(
-            self.history['val_losses'], len(self.history['losses']) // max(1, len(self.history['val_losses']))
-        )[:len(self.history['losses'])].tolist()
+        self.history['val_losses'] = self.history['val_losses'][:len(self.history['losses'])]
 
     def savefig(self, filename, callback):
         # checking race condition
@@ -74,21 +72,27 @@ class MaxStepStoppingWithLogging(tf.keras.callbacks.Callback):
         df.to_csv(filename + '.csv')
 
 class LRFinder(tf.keras.callbacks.Callback):
-    def __init__(self, data, batch_size, base_lr=1e-6, window_size=4, max_steps: int=400, decay_rate: float=1.024, filename=None) -> None:
+    def __init__(self, data, batch_size, base_lr=5e-6, max_lr: float=1e-2, window_size=4, max_steps: int=400, filename=None) -> None:
         super().__init__()
         self.data = data
         self.batch_size = batch_size
         self.base_lr = base_lr
         self.window_size = window_size
         self.max_steps = max_steps
-        self.decay_rate = decay_rate
+        self.max_lr = max_lr
         self.filename = filename
 
     def on_train_begin(self, logs={}):
         if not hasattr(self.model.optimizer, 'learning_rate') or not hasattr(self.model.optimizer.learning_rate, 'initial_learning_rate'):
             raise ValueError('Optimizer must have a "learning_rate" attribute and it has "initial_learning_rate"')
 
-        lr_decayed_fn = tf.keras.optimizers.schedules.ExponentialDecay(self.base_lr, decay_steps=1, decay_rate=self.decay_rate)
+        lr_decayed_fn = tf.keras.optimizers.schedules.PolynomialDecay(
+            self.base_lr * self.batch_size,
+            self.max_steps,
+            end_learning_rate=self.max_lr * self.batch_size,
+            power=1,
+        )
+        lr_decayed_fn = tf.keras.optimizers.schedules.ExponentialDecay(5e-6, decay_steps=1, decay_rate=1.024)
         print('LRFinder: Finding `best_base_lr` range from: [{:.0e}({:.8f}), {:.0e}({:.8f})]...'.format(
                 lr_decayed_fn(0), lr_decayed_fn(0),
                 lr_decayed_fn(self.max_steps), lr_decayed_fn(self.max_steps)
@@ -100,6 +104,7 @@ class LRFinder(tf.keras.callbacks.Callback):
         self.model.optimizer.learning_rate = lr_decayed_fn
 
         self.mss_l = MaxStepStoppingWithLogging(max_steps=self.max_steps, tqdm_prefix='LRFinder')
+        weights = self.model.get_weights()
         self.model.fit(
             self.data,
             batch_size=self.batch_size,
@@ -107,6 +112,7 @@ class LRFinder(tf.keras.callbacks.Callback):
             verbose=0,
             callbacks=[self.mss_l]
         )
+        self.model.set_weights(weights)
 
         self.history = self.mss_l.history
         right_padded_size = self.window_size - len(self.history['losses']) % self.window_size
@@ -115,14 +121,14 @@ class LRFinder(tf.keras.callbacks.Callback):
                            .mean(axis=1)
         window_loesses_diff = np.diff(window_loesses)
 
-        best_base_lr_index = min(self.max_steps - 1, (window_loesses_diff.argmin() * self.window_size))
+        best_base_lr_index = min(self.max_steps - 1, ((window_loesses_diff.argmin()) * self.window_size))
         best_base_lr = self.history['lr'][best_base_lr_index]
 
         print('LRFinder: best_base_lr = {:.0e}({:.8f})'.format(best_base_lr, best_base_lr))
         if best_base_lr_index == (self.window_size // 2) + 2:
             print('LRFinder: WARNING! you should set a smaller `base_lr`')
         elif best_base_lr_index == self.max_steps - 1:
-            print('LRFinder: WARNING! you should set a larger `max_steps` or `decay_rate`')
+            print('LRFinder: WARNING! you should set a larger `max_steps` or `max_lr`')
         if not np.allclose(lr_decayed_fn(np.arange(self.max_steps)), self.history['lr']):
             print("LRFinder: WARNING! replace optimizer failed, learning rate is incorrect")
 

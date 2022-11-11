@@ -1,44 +1,39 @@
 import tensorflow as tf
+import tensorflow_addons as tfa
 from tensorflow.keras import layers
-from datasets import DatasetWrapper, MSRADataset
+from datasets import DatasetWrapper
 from models import get_model
-from .Trainer import Trainer
-from utils.conlleval import evaluate
-from utils.lr_finder import LRFinder, MaxStepStoppingWithLogging
+from trainers.Trainer import Trainer
 
-def calculate_metrics(model, dataset):
-    all_true_tag_ids, all_predicted_tag_ids = [], []
+class CalculateMetrics(tf.keras.callbacks.Callback):
+    def __init__(self, dataset, id_to_label) -> None:
+        self.id_to_label = list(id_to_label.values())
+        self.history = []
+        self.f1_score = tfa.metrics.F1Score(len(self.id_to_label))
 
-    for x, y in dataset:
-        output = model.predict(x)
-        predictions = tf.argmax(output, axis=-1)
-        predictions = tf.reshape(predictions, [-1])
+        self.dataset = dataset
+        self.y_true = [y for y in self.dataset.map(lambda x, y: y)]
+        self.y_true = tf.reshape(self.y_true, [-1, self.dataset.element_spec[1].shape[-1]])
 
-        ground_truth = tf.argmax(y, axis=-1)
-        true_tag_ids = tf.reshape(ground_truth, [-1])
+    def on_epoch_end(self, epoch, logs={}):
+        out = self.model.predict(self.dataset)
+        y_pred = tf.reshape(out, self.y_true.shape)
 
-        all_true_tag_ids.append(true_tag_ids)
-        all_predicted_tag_ids.append(predictions)
-
-    all_true_tag_ids = tf.concat(all_true_tag_ids, axis=-1)
-    all_predicted_tag_ids = tf.concat(all_predicted_tag_ids, axis=-1)
-
-    predicted_tags = [MSRADataset.ID_TO_LABEL[int(tag)] for tag in all_predicted_tag_ids]
-    real_tags = [MSRADataset.ID_TO_LABEL[int(tag)] for tag in all_true_tag_ids]
-
-    try:
-        evaluate(real_tags, predicted_tags)
-    except ZeroDivisionError:
-        print('The accuracy in model log is for `O` tag. Real accuracy = 0.')
-    except:
-        print('Unkown error')
+        # DROP Position Zero: O-tag default id is 0
+        f1_scores = self.f1_score(self.y_true, y_pred)[1:].numpy()
+        f1_score = sum(f1_scores) / len(f1_scores)
+        logs['val_f1_score'] = f1_score
+        self.history.append(f1_score)
 
 def train(args, dataset: DatasetWrapper):
     vectorize_layer = layers.TextVectorization(
         output_mode='int',
     )
 
-    train_data, test_data = dataset.getData(args.batch_size)
+    train_data, test_data, ds_info = dataset.getData(args.batch_size)
+    if not 'id_to_label' in ds_info.metadata or not type(ds_info.metadata['id_to_label']) is dict:
+        raise "dataset must have `id_to_label`: dict(int, tag_str) for NERTrainer"
+
     train_text = train_data.flat_map(lambda text, label: tf.data.Dataset.from_tensor_slices(text))
     vectorize_layer.adapt(train_text)
     vocab_size = vectorize_layer.vocabulary_size()
@@ -66,9 +61,10 @@ def train(args, dataset: DatasetWrapper):
     trainer = Trainer(
         args,
         model,
+        monitor='val_f1_score',
         optimizer=tf.keras.optimizers.Adam(learning_rate=lr_decayed_fn, beta_1=0.9, beta_2=0.98, epsilon=1e-07),
         loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
         metrics=['accuracy']
     )
 
-    return trainer.train(train_data, test_data)
+    return trainer.train(train_data, test_data, callbacks=[CalculateMetrics(test_data, ds_info.metadata['id_to_label'])])

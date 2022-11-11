@@ -73,6 +73,8 @@ def main(args):
                 save_log(fitting.history, 'val_categorical_accuracy')
             else:
                 save_log(fitting.history, 'val_binary_accuracy')
+        elif dataset.getTask() == 'ner':
+            save_log(fitting.history, 'val_f1_score')
         else:
             save_log(fitting.history)
 
