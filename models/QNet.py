@@ -100,14 +100,13 @@ class QNet(layers.Layer):
         qubits, model_circuit = generate_model(embed_dim, seq_len, depth)
         observables = [ cirq.Z(bit) for bit in qubits ]
         self.backbone = tfq.layers.ControlledPQC(model_circuit, operators=observables)
-        self.norm = layers.LayerNormalization(epsilon=1e-6)
     
     def call(self, inputs):
         empty_circuit = tf.tile(tfq.convert_to_tensor([cirq.Circuit()]), tf.stack([tf.shape(inputs)[0]]))
         y = self.backbone([empty_circuit, inputs])
 
         y = tf.reshape(y, [-1, self.seq_len, self.embed_dim])
-        return self.norm(y)
+        return y
 
 class QNetEncoder(layers.Layer):
     def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, num_blocks: int, depth: int):
@@ -128,5 +127,6 @@ class QNetEncoder(layers.Layer):
     def call(self, x):
         x = self.embed(x)
         for encoder in self.encoders:
-            x = x + encoder(x)
+            x = tf.linalg.normalize(x, axis=[-2,-1])[0]
+            x = x + tf.linalg.normalize(encoder(x), axis=[-2,-1])[0]
         return x
