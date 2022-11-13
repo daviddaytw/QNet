@@ -5,7 +5,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(description='Configure training arugments.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--dataset', '-d', default='stackoverflow', type=str,
                         help='Select the training or evaluation dataset (' + ','.join(datasets.list_dataset()) + ').')
-    parser.add_argument('--model', '-m', default='qnet', type=str,
+    parser.add_argument('--model', '-m', default='resqnet', type=str,
                         help='Select the trainig model (' + ','.join(models.list_model()) + ')')
     parser.add_argument('--seq_len', '-ml', default='8', type=int,
                         help='Input length for the model.')
@@ -13,8 +13,6 @@ def parse_args(args=None):
                         help='Embedding size for each token.')
     parser.add_argument('--num_blocks', '-nb', default='1', type=int,
                         help='Number of mini-blocks in the model.')
-    parser.add_argument('--qnet_depth', default=1, type=int,
-                        help='Number of QNet blocks on the quantum computer, only applicable for QNet.')
     parser.add_argument('--batch_size', '-bs', default='128', type=int,
                         help='Number of samples per batch a node.')
     parser.add_argument('--lr', '-lr', default='3e-4', type=float,
