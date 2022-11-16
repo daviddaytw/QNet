@@ -47,9 +47,6 @@ def solve_args(args = None, multi_worker_strategy: bool = False):
             'task': {'type': 'worker', 'index': args.distributed_node_index}
         })
 
-        # Global batch size should be batch_per_worker * num_workers
-        args.batch_size *= len(args.distributed_nodes)
-
     # Increase learning rate with global batch size.
     args.lr *= args.batch_size
 
