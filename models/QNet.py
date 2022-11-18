@@ -100,10 +100,11 @@ class QNet(layers.Layer):
         qubits, model_circuit = generate_model(embed_dim, seq_len, depth)
         observables = [ cirq.Z(bit) for bit in qubits ]
         self.backbone = tfq.layers.ControlledPQC(model_circuit, operators=observables)
+        self.empty_circuit = tfq.convert_to_tensor([cirq.Circuit()])
     
     def call(self, inputs):
-        empty_circuit = tf.tile(tfq.convert_to_tensor([cirq.Circuit()]), tf.stack([tf.shape(inputs)[0]]))
-        y = self.backbone([empty_circuit, inputs])
+        bzs = tf.shape(inputs)[0]
+        y = self.backbone([tf.tile(self.empty_circuit, tf.stack([bzs])), inputs])
 
         y = tf.reshape(y, [-1, self.seq_len, self.embed_dim])
         return y
