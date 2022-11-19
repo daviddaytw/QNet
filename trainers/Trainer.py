@@ -26,6 +26,7 @@ class Trainer():
 
         model_callbacks = [
             self.early_stopping,
+            tf.keras.callbacks.TensorBoard(update_freq=1),
             *callbacks,
         ]
 
@@ -45,7 +46,9 @@ class Trainer():
                     train_data,
                     batch_size=args.batch_size,
                     epochs=args.epochs,
+                    steps_per_epoch=args.steps_per_epoch,
                     validation_data=test_data,
+                    shuffle=True,
                     verbose=1,
                     callbacks=model_callbacks
                 )

@@ -22,6 +22,8 @@ def parse_args(args=None):
                         help='LRFinder finding initial learning rate automatically, only applicable for --lr 0')
     parser.add_argument('--epochs','-e', default='10', type=int,
                         help='Number of training loops over all training data')
+    parser.add_argument('--steps_per_epoch','-se', default='200', type=int,
+                        help='Number of steps in an epoch')
     parser.add_argument('--distributed_nodes','-dn', nargs='+', type=str,
                         help='Domain of all nodes')
     parser.add_argument('--distributed_node_index','-dni', type=int,

@@ -32,8 +32,7 @@ class DatasetWrapper():
              ds = ds.batch(batch_size, drop_remainder=True)
 
              train_data = ds.take(int(len(ds) * train_ratio))\
-                         .cache()\
-                         .shuffle(1000)
+                         .cache()
              test_data = ds.skip(int(len(ds) * train_ratio))\
                          .cache()
 
@@ -47,7 +46,6 @@ class DatasetWrapper():
 
         train_data = ds.take(int(len(ds) * train_ratio))\
                     .cache()\
-                    .shuffle(1000)\
                     .batch(batch_size)\
                     .with_options(self.options)
         test_data = ds.skip(int(len(ds) * train_ratio))\
