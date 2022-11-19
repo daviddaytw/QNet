@@ -24,13 +24,6 @@ def save_log(history, val_metric: str='val_loss'):
         logs['best_acc'] = max(history[val_metric])
     print('Best score: ', logs['best_acc'])
 
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    logfile_name = dir_path + f'/logs/{args.model}-{int(time.time())}.json'
-    os.makedirs(os.path.dirname(logfile_name), exist_ok=True)
-    with open(logfile_name, 'w') as f:
-        json.dump(logs, f, indent=4)
-    print('Log file saved at: ', logfile_name)
-
     record = {
         'Complete Time': time.ctime(),
         'Model':args.model,
@@ -42,6 +35,7 @@ def save_log(history, val_metric: str='val_loss'):
         'args': json.dumps(vars(args))
     }
 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
     record_csv = dir_path + f'/logs/0-Record.csv'
     Path(record_csv).touch()
     with open(record_csv, 'r') as f:

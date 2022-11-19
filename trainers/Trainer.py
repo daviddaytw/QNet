@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utils.lr_finder import LRFinder, MaxStepStoppingWithLogging
+from utils.lr_finder import LRFinder
 
 class Trainer():
     def __init__(self, args, model, monitor=None, **kwargs):
@@ -24,23 +24,21 @@ class Trainer():
         args = self.args
         model = self.model
 
-        mss_l = MaxStepStoppingWithLogging(max_steps=-1) # just logging
-        lr_finder = LRFinder(
-                        train_data,
-                        args.batch_size,
-                        window_size=int(args.lr_finder[0]),
-                        max_steps=int(args.lr_finder[1]),
-                        filename=args.lr_finder[2]
-                    )
-
         model_callbacks = [
-            mss_l,
             self.early_stopping,
             *callbacks,
         ]
 
         if args.lr <= 0:
-            model_callbacks.append(lr_finder)
+            model_callbacks.append(
+                LRFinder(
+                        train_data,
+                        args.batch_size,
+                        window_size=int(args.lr_finder[0]),
+                        max_steps=int(args.lr_finder[1]),
+                        filename=args.lr_finder[2]
+                )
+            )
 
         print(model.summary())
         fitting = self.model.fit(
