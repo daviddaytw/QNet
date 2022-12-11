@@ -1,27 +1,28 @@
 import tensorflow as tf
-import tensorflow_addons as tfa
 from tensorflow.keras import layers
 from datasets import DatasetWrapper
 from models import get_model
 from trainers.Trainer import Trainer
 
+from utils.conlleval import evaluate
+
 class CalculateMetrics(tf.keras.callbacks.Callback):
     def __init__(self, dataset, id_to_label) -> None:
         self.id_to_label = list(id_to_label.values())
         self.history = []
-        self.f1_score = tfa.metrics.F1Score(len(self.id_to_label))
+        self.int_to_tag = tf.keras.layers.StringLookup(vocabulary=self.id_to_label, invert=True)
 
         self.dataset = dataset
         self.y_true = [y for y in self.dataset.map(lambda x, y: y)]
         self.y_true = tf.reshape(self.y_true, [-1, self.dataset.element_spec[1].shape[-1]])
+        self.y_true_tag = self.int_to_tag(tf.argmax(self.y_true, axis=-1) + 1).numpy().astype(dtype='<U13')
 
     def on_epoch_end(self, epoch, logs={}):
         out = self.model.predict(self.dataset)
         y_pred = tf.reshape(out, self.y_true.shape)
+        y_pred_tag = self.int_to_tag(tf.argmax(y_pred, axis=-1) + 1).numpy().astype(dtype='<U13')
 
-        # DROP Position Zero: O-tag default id is 0
-        f1_scores = self.f1_score(self.y_true, y_pred)[1:].numpy()
-        f1_score = sum(f1_scores) / len(f1_scores)
+        _, _, f1_score = evaluate(self.y_true_tag, y_pred_tag)
         logs['val_f1_score'] = f1_score
         self.history.append(f1_score)
 
@@ -31,8 +32,10 @@ def train(args, dataset: DatasetWrapper):
     )
 
     train_data, test_data, ds_info = dataset.getData(args.batch_size)
-    if not 'id_to_label' in ds_info.metadata or not type(ds_info.metadata['id_to_label']) is dict:
-        raise "dataset must have `id_to_label`: dict(int, tag_str) for NERTrainer"
+    if not 'id_to_label' in ds_info.metadata \
+        or not type(ds_info.metadata['id_to_label']) is dict \
+        or ds_info.metadata['id_to_label']['0'] != 'O':
+        raise "dataset must have `id_to_label`: dict(int, tag_str) for NERTrainer and tag `O` must be '0'"
 
     train_text = train_data.flat_map(lambda text, label: tf.data.Dataset.from_tensor_slices(text))
     vectorize_layer.adapt(train_text)

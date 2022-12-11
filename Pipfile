@@ -109,7 +109,6 @@ wcwidth = "==0.2.5"
 werkzeug = "==2.2.1"
 wrapt = "==1.14.1"
 zipp = "==3.8.1"
-tensorflow-addons = "==0.17.1"
 
 [dev-packages]
 ipykernel = "*"
