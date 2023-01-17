@@ -20,9 +20,9 @@ def parse_args(args=None):
     parser.add_argument('--lr_finder', default=['4', '400', './logs/lr_finder'], nargs=3,
                         metavar=('window_size max_steps verbose_filename', ':', 'int int str'),
                         help='LRFinder finding initial learning rate automatically, only applicable for --lr 0')
-    parser.add_argument('--epochs','-e', default='10', type=int,
+    parser.add_argument('--epochs','-e', default='5', type=int,
                         help='Number of training loops over all training data')
-    parser.add_argument('--steps_per_epoch','-se', default='40', type=int,
+    parser.add_argument('--steps_per_epoch','-se', default='100', type=int,
                         help='Number of steps in an epoch')
     parser.add_argument('--distributed_nodes','-dn', nargs='+', type=str,
                         help='Domain of all nodes')
