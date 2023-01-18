@@ -11,8 +11,8 @@ def quantum_data_encoder(bits, symbols, embed_size):
     circuit = cirq.Circuit()
     seq_len = len(bits) // embed_size
     for idx, bit in enumerate(bits):
-        circuit.append(cirq.rx(symbols[idx])(bit))
-        circuit.append(cirq.rz( idx // embed_size / seq_len * pi)(bit))
+        circuit.append(cirq.rz(symbols[idx])(bit))
+        circuit.append(cirq.rx( idx // embed_size / seq_len * pi)(bit))
     return circuit
 
 def quanttention(bits, embed_size):
@@ -51,8 +51,6 @@ def quantum_feedforward(bits, embed_size, level, symbols):
         circuit.append(cirq.X(bit) ** symbols[(idx + level) % embed_size])
         circuit.append(cirq.Y(bit) ** symbols[(idx + level) % embed_size + embed_size])
         circuit.append(cirq.Z(bit) ** symbols[(idx + level) % embed_size + 2 * embed_size])
-    for i in range(len(bits)):
-        circuit.append(cirq.CX(bits[(i + level) % len(bits)], bits[(i + level + 1) % len(bits)]))
     return circuit
 
 def generate_model(embed_size, seq_len, depth = 1):
@@ -71,6 +69,9 @@ def generate_model(embed_size, seq_len, depth = 1):
         circuit += grover_operator(qubits, embed_size)
         symbols = ff_symbols[(d*2+1) * embed_size * 3 : (d+1)*2 * embed_size * 3]
         circuit += quantum_feedforward(qubits, embed_size, d+1, symbols)
+        circuit += grover_operator(qubits, embed_size)
+
+        circuit += quanttention(qubits, embed_size) ** -1
 
     return qubits, circuit
 
