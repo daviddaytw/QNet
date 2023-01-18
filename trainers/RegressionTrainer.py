@@ -26,7 +26,7 @@ def train(args, dataset: DatasetWrapper):
         layers.Dense(1),
     ])
 
-    lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * len(train_data), alpha=1e-2)
+    lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * args.steps_per_epoch, alpha=1e-2)
     trainer = Trainer(
         args,
         model,

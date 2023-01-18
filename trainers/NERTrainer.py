@@ -60,7 +60,7 @@ def train(args, dataset: DatasetWrapper):
         tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(dataset.getOutputSize())),
     ])
 
-    lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * train_data_size, alpha=1e-2)
+    lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecay(args.lr, args.epochs * args.steps_per_epoch, alpha=1e-2)
     trainer = Trainer(
         args,
         model,
