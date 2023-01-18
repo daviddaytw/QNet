@@ -1,5 +1,8 @@
-# since we encounter this [problem](https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/distribute/multi_worker_with_keras.ipynb?hl=id-IDCache#scrollTo=Mhq3fzyR5hTw)
-# it must put on the file starts before initialize other class and after set env.
+import multiprocessing
+import tensorflow as tf
+print('Number of CPU count: ', multiprocessing.cpu_count())
+tf.config.threading.set_inter_op_parallelism_threads(multiprocessing.cpu_count())
+
 from models import count_params
 from utils.args_parser import solve_args
 args = solve_args(multi_worker_strategy=True)
@@ -8,7 +11,6 @@ import os, time, json, csv
 from pathlib import Path
 
 import numpy as np
-import tensorflow as tf
 from datasets import get_dataset
 from trainers import get_trainer
 
