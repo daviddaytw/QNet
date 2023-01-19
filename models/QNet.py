@@ -95,6 +95,7 @@ class ParametersLayer(layers.Layer):
 class QNet(layers.Layer):
     def __init__(self, embed_dim, seq_len, depth):
         super(QNet, self).__init__()
+        
         self.embed_dim = embed_dim
         self.seq_len = seq_len
 
@@ -126,6 +127,25 @@ class QNetEncoder(layers.Layer):
         x = self.embed(x)
         return self.encoder(x)
 
+class ResQNetBlock(layers.Layer):
+    def __init__(self, embed_dim, seq_len, depth):
+        super(ResQNetBlock, self).__init__()
+
+        self.muls = tf.Variable(
+            tf.random.uniform((embed_dim,)),
+            name="Multiply",
+            dtype=tf.float32,
+        )
+        
+        self.param_layer = ParametersLayer(embed_dim, depth)
+        self.qnet = QNet(embed_dim, seq_len, depth)
+    
+    def call(self, x):
+        x = x * self.muls
+        x = self.param_layer(x)
+        x = self.qnet(x)
+        return x
+
 class ResQNetEncoder(layers.Layer):
     def __init__(self, vocab_size: int, maxlen: int, embed_dim: int, num_blocks: int, depth: int=1):
         super(ResQNetEncoder, self).__init__()
@@ -135,12 +155,7 @@ class ResQNetEncoder(layers.Layer):
         ])
         self.encoders = []
         for _ in range(num_blocks):
-            self.encoders.append(
-                tf.keras.models.Sequential([
-                    ParametersLayer(embed_dim, depth),
-                    QNet(embed_dim, maxlen, depth),
-                ])
-            )
+            self.encoders.append(ResQNetBlock(embed_dim, maxlen, depth))
 
     def call(self, x):
         x = self.embed(x)
