@@ -42,6 +42,5 @@ msra,resqnet,3,2
 msra,qlstm,2,1
 msra,qlstm,2,2
 msra,qlstm,3,1
-msra,fnet,256,6
-msra,transformer,512,8
-msra,transformer,768,12
+msra,fnet,128,2
+msra,transformer,128,2
