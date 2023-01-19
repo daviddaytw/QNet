@@ -43,7 +43,7 @@ class Trainer():
 
         print(model.summary())
         fitting = self.model.fit(
-                    train_data,
+                    train_data.repeat(),
                     batch_size=args.batch_size,
                     epochs=args.epochs,
                     steps_per_epoch=args.steps_per_epoch,
