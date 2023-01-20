@@ -48,6 +48,7 @@ class Trainer():
                     epochs=args.epochs,
                     steps_per_epoch=args.steps_per_epoch,
                     validation_data=test_data,
+                    validation_steps=int(args.steps_per_epoch * 0.1),
                     shuffle=True,
                     verbose=1,
                     callbacks=model_callbacks
