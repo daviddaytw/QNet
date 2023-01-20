@@ -11,8 +11,8 @@ def quantum_data_encoder(bits, symbols, embed_size):
     circuit = cirq.Circuit()
     seq_len = len(bits) // embed_size
     for idx, bit in enumerate(bits):
-        circuit.append(cirq.rz(symbols[idx])(bit))
-        circuit.append(cirq.rx( idx // embed_size / seq_len * pi)(bit))
+        circuit.append(cirq.rx(symbols[idx])(bit))
+        circuit.append(cirq.rz( idx // embed_size / seq_len * pi)(bit))
     return circuit
 
 def quanttention(bits, embed_size):
