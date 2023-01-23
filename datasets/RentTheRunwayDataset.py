@@ -20,8 +20,8 @@ _CITATION = """\
     series = {RecSys '18}
 }
 """
-_HOMEPAGE = "http://deepx.ucsd.edu/public/jmcauley/renttherunway/renttherunway_final_data.json.gz"
-_URL = 'http://deepx.ucsd.edu/public/jmcauley/renttherunway/renttherunway_final_data.json.gz'
+_HOMEPAGE = "http://deepx.ucsd.edu/public/jmcauley/renttherunway/"
+_URL = 'https://davidday.tw/wp-content/uploads/2023/01/renttherunway_final_data.json_.gz'
 
 class RentTheRunwayDataset(tfds.core.GeneratorBasedBuilder):
   VERSION = tfds.core.Version('0.1.1')
