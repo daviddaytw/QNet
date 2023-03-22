@@ -45,12 +45,25 @@ def grover_operator(bits, embed_size):
         circuit.append(cirq.Z(subs[-1]))
     return circuit
 
-def quantum_feedforward(bits, embed_size, level, symbols):
+def vqe(bits, embed_size, symbols):
     circuit = cirq.Circuit()
     for idx, bit in enumerate(bits):
-        circuit.append(cirq.X(bit) ** symbols[(idx + level) % embed_size])
-        circuit.append(cirq.Y(bit) ** symbols[(idx + level) % embed_size + embed_size])
-        circuit.append(cirq.Z(bit) ** symbols[(idx + level) % embed_size + 2 * embed_size])
+        circuit.append(cirq.X(bit) ** symbols[idx % embed_size])
+        circuit.append(cirq.Y(bit) ** symbols[idx % embed_size + embed_size])
+        circuit.append(cirq.Z(bit) ** symbols[idx % embed_size + 2 * embed_size])
+    return circuit
+
+def feedforward(qubits, embed_size, ff_symbols):
+    circuit = cirq.Circuit()
+
+    symbols = ff_symbols[0 : embed_size * 3]
+    circuit += vqe(qubits, embed_size, symbols)
+    circuit += grover_operator(qubits, embed_size)
+
+    symbols = ff_symbols[embed_size * 3 : 2 * embed_size * 3]
+    circuit += vqe(qubits, embed_size, symbols)
+    circuit += grover_operator(qubits, embed_size)
+
     return circuit
 
 def generate_model(embed_size, seq_len, depth = 1):
@@ -60,18 +73,18 @@ def generate_model(embed_size, seq_len, depth = 1):
     embedding_symbols = sympy.symbols(f'e0:{embed_size * seq_len}')
     circuit = quantum_data_encoder(qubits, embedding_symbols, embed_size)
     
-    ff_symbols = sympy.symbols(f't0:{embed_size * depth * 2 * 3}')
+    ff1_symbols = sympy.symbols(f't0:{embed_size * depth * 3}')
+    ff2_symbols = sympy.symbols(f'f0:{embed_size * depth * 2 * 3}')
     for d in range(depth):
         circuit += quanttention(qubits, embed_size)
 
-        symbols = ff_symbols[d*2 * embed_size * 3 : (d*2+1) * embed_size * 3]
-        circuit += quantum_feedforward(qubits, embed_size, d, symbols)
-        circuit += grover_operator(qubits, embed_size)
-        symbols = ff_symbols[(d*2+1) * embed_size * 3 : (d+1)*2 * embed_size * 3]
-        circuit += quantum_feedforward(qubits, embed_size, d+1, symbols)
-        circuit += grover_operator(qubits, embed_size)
+        symbols = ff1_symbols[d * embed_size * 3 : (d+1) * embed_size * 3]
+        circuit += vqe(qubits, embed_size, symbols)
 
         circuit += quanttention(qubits, embed_size) ** -1
+
+        symbols = ff2_symbols[d*2 * embed_size * 3 : (d+1)*2 * embed_size * 3]
+        circuit += feedforward(qubits, embed_size, symbols)
 
     return qubits, circuit
 
@@ -80,7 +93,7 @@ class ParametersLayer(layers.Layer):
     def __init__(self, embed_dim, depth):
         super(ParametersLayer, self).__init__()
         self.parameters = tf.Variable(
-            tf.random.uniform((1, 2 * depth * 3 * embed_dim), maxval= 2 * np.pi),
+            tf.random.uniform((1, 3 * depth * 3 * embed_dim), maxval= 2 * np.pi),
             name="Q_param",
             dtype=tf.float32,
         )
